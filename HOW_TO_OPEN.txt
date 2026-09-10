@@ -1,0 +1,40 @@
+Register Drop Counter - Visual Studio 2022
+==========================================
+
+THE FILE YOU OPEN IS:
+
+    RegisterDropCounter.sln
+
+That is the Visual Studio solution. It sits in the root of this unzipped folder.
+
+Steps
+-----
+1. Unzip RegisterDropCounter-VS2022.zip anywhere on the PC.
+2. Double-click  RegisterDropCounter.sln
+3. If Visual Studio asks to retarget the Windows SDK, accept the default.
+4. Set the toolbar to:  Release | x64
+5. Press F5 to run (or Ctrl+F5 to run without the debugger).
+
+Requires Visual Studio 2022 with the "Desktop development with C++" workload.
+No NuGet packages, no MFC.
+
+Projects in the solution
+------------------------
+RegisterDropCounter   Win32 app - count drawers, drop to base, copy TSV
+DropEngineTest        Console tests against the 2026-08-10 workbook sample
+
+Copy buttons write real tab-separated values (same layout as the Excel
+Copy / Copy All / Totals / EOD / Reset macros) so you can paste into the
+national cash log without breaking its formatting.
+
+History
+-------
+Clear and Clear All save a snapshot. Click **History** on the main window
+to search by date, look at old register counts, restore a snapshot, or
+clear the tab. Today's date is shown on the main window.
+
+About
+-----
+Click **About** for the how-to. **Show changelog** opens a scrollable list
+of Excel workbook history, drop fixes, the Windows app, and the Android
+phone layout.
