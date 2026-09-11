@@ -37,5 +37,4 @@ Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe 
 | `RegisterDropCounter/DropEngine.h` | Integer-cent drop math |
 | `RegisterDropCounter/History.h` | Clear snapshots, date filter, restore |
 | `RegisterDropCounter/App.cpp` | Win32 UI, clipboard, History, About |
-| `RegisterDropCounter/AppWindows.inc` | History, About, and window procedures |
 | `DropEngineTest/DropEngineTest.cpp` | Workbook sample tests |

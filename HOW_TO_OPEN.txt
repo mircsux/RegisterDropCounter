@@ -1,4 +1,4 @@
-Register Drop Counter - Visual Studio 2022
+Register Drop Counter — Visual Studio 2022
 ==========================================
 
 THE FILE YOU OPEN IS:
@@ -20,7 +20,7 @@ No NuGet packages, no MFC.
 
 Projects in the solution
 ------------------------
-RegisterDropCounter   Win32 app - count drawers, drop to base, copy TSV
+RegisterDropCounter   Win32 app — count drawers, drop to base, copy TSV
 DropEngineTest        Console tests against the 2026-08-10 workbook sample
 
 Copy buttons write real tab-separated values (same layout as the Excel

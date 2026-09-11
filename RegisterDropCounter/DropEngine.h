@@ -1,6 +1,6 @@
 #pragma once
 // Integer-cent drop engine matching RegisterDropCounter-08102026.xlsx, plus $2 bills.
-// Drop order: $100 -> $50 -> $20 -> $10 -> $5 -> $2 -> $1 -> Q -> D -> N -> Q-roll -> D-roll -> N-roll -> P-roll -> pennies.
+// Drop order: $100 → $50 → $20 → $10 → $5 → $2 → $1 → Q → D → N → Q-roll → D-roll → N-roll → P-roll → pennies.
 
 #include <algorithm>
 #include <array>
