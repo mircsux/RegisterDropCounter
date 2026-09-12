@@ -386,6 +386,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.5.0  2026-09-12  Remember window\r\n"
+    L"- Windows app restores its last screen position, size, and maximized state when you open it again.\r\n"
+    L"\r\n"
     L"v2.4.0  2026-09-12  Version number\r\n"
     L"- Visible product version on the header, About tab, and Windows About window.\r\n"
     L"- The version is bumped whenever the counter is updated.\r\n"
@@ -714,6 +717,10 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       return 0;
     case WM_SIZE:
       if (w != SIZE_MINIMIZED) Relayout(h);
+      if (w == SIZE_MAXIMIZED) SaveWindowPlacement(h);
+      return 0;
+    case WM_EXITSIZEMOVE:
+      SaveWindowPlacement(h);
       return 0;
     case WM_ERASEBKGND: {
       HDC dc = (HDC)w;
@@ -865,6 +872,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       return 0;
     }
     case WM_DESTROY:
+      SaveWindowPlacement(h);
       SaveState();
       PersistHistory();
       PostQuitMessage(0);
@@ -923,7 +931,14 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   wchar_t mainTitle[80];
   swprintf(mainTitle, 80, L"Register Drop Counter  %s", rdc::kAppVersion);
   SetWindowTextW(gMain, mainTitle);
-  ShowWindow(gMain, show);
+
+  WINDOWPLACEMENT wp{};
+  if (LoadWindowPlacement(&wp)) {
+    SetWindowPlacement(gMain, &wp);
+    ShowWindow(gMain, wp.showCmd);
+  } else {
+    ShowWindow(gMain, show);
+  }
   UpdateWindow(gMain);
 
   MSG msg;

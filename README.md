@@ -2,7 +2,7 @@
 
 A counting tool for cash drawers. Open `RegisterDropCounter.sln` in Visual Studio 2022.
 
-Version **2.4.0** (2026-09-12). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.5.0** (2026-09-12). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open in Visual Studio
 
@@ -27,7 +27,7 @@ To check drop math against the 2026-08-10 workbook sample, build and run **DropE
 - **Clear** and **Clear All** save a snapshot first. **History** searches by date, shows old counts, and restores.
 - **About** has the how-to. **Show changelog** lists Excel history, drop fixes, Windows, and the Android phone layout. Today's date is on the main window.
 
-Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe as `RegisterDropCounter.state`. History saves as `RegisterDropCounter.history`.
+Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe as `RegisterDropCounter.state`. History saves as `RegisterDropCounter.history`. Window position and size save as `RegisterDropCounter.window`.
 
 ## Files
 
@@ -35,6 +35,6 @@ Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe 
 | --- | --- |
 | `RegisterDropCounter.sln` | Open this in Visual Studio |
 | `RegisterDropCounter/DropEngine.h` | Integer-cent drop math |
-| `RegisterDropCounter/History.h` | Clear snapshots, date filter, restore |
+| `RegisterDropCounter/Version.h` | Product version |
 | `RegisterDropCounter/App.cpp` | Win32 UI, clipboard, History, About |
 | `DropEngineTest/DropEngineTest.cpp` | Workbook sample tests |

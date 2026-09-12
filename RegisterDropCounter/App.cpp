@@ -142,6 +142,71 @@ std::wstring HistoryPath() {
   return p + L"RegisterDropCounter.history";
 }
 
+std::wstring WindowPath() {
+  wchar_t buf[MAX_PATH];
+  GetModuleFileNameW(nullptr, buf, MAX_PATH);
+  std::wstring p(buf);
+  const auto slash = p.find_last_of(L"\\/");
+  if (slash != std::wstring::npos) p.resize(slash + 1);
+  return p + L"RegisterDropCounter.window";
+}
+
+void ClampToWorkArea(RECT* r) {
+  int w = r->right - r->left;
+  int h = r->bottom - r->top;
+  if (w < 1000) w = 1000;
+  if (h < 600) h = 600;
+  HMONITOR mon = MonitorFromRect(r, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO mi{sizeof(mi)};
+  if (!GetMonitorInfoW(mon, &mi)) return;
+  const RECT& wa = mi.rcWork;
+  const int maxW = wa.right - wa.left;
+  const int maxH = wa.bottom - wa.top;
+  if (w > maxW) w = maxW;
+  if (h > maxH) h = maxH;
+  if (r->left < wa.left) r->left = wa.left;
+  if (r->top < wa.top) r->top = wa.top;
+  if (r->left + w > wa.right) r->left = wa.right - w;
+  if (r->top + h > wa.bottom) r->top = wa.bottom - h;
+  if (r->left < wa.left) r->left = wa.left;
+  if (r->top < wa.top) r->top = wa.top;
+  r->right = r->left + w;
+  r->bottom = r->top + h;
+}
+
+void SaveWindowPlacement(HWND h) {
+  if (!h || !IsWindow(h)) return;
+  WINDOWPLACEMENT wp{sizeof(wp)};
+  if (!GetWindowPlacement(h, &wp)) return;
+  std::wofstream out(WindowPath().c_str());
+  if (!out) return;
+  out << L"RDCW1\n"
+      << (int)wp.showCmd << L' ' << wp.rcNormalPosition.left << L' ' << wp.rcNormalPosition.top
+      << L' ' << wp.rcNormalPosition.right << L' ' << wp.rcNormalPosition.bottom << L'\n';
+}
+
+bool LoadWindowPlacement(WINDOWPLACEMENT* wp) {
+  std::wifstream in(WindowPath().c_str());
+  if (!in) return false;
+  std::wstring mag;
+  std::getline(in, mag);
+  if (mag != L"RDCW1") return false;
+  int show = SW_SHOWNORMAL, l = 0, t = 0, r = 0, b = 0;
+  in >> show >> l >> t >> r >> b;
+  if (!in) return false;
+  if (r - l < 200 || b - t < 160) return false;
+  *wp = WINDOWPLACEMENT{};
+  wp->length = sizeof(*wp);
+  wp->flags = 0;
+  wp->showCmd = show;
+  if (wp->showCmd == SW_SHOWMINIMIZED || wp->showCmd == SW_MINIMIZE ||
+      wp->showCmd == SW_FORCEMINIMIZE)
+    wp->showCmd = SW_SHOWNORMAL;
+  wp->rcNormalPosition = {l, t, r, b};
+  ClampToWorkArea(&wp->rcNormalPosition);
+  return true;
+}
+
 void PersistHistory() { rdc::SaveHistory(HistoryPath(), gHistory); }
 
 void SnapshotBeforeClear(rdc::HistoryKind kind, int registerIndex) {
