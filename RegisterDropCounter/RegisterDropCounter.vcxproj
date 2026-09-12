@@ -128,6 +128,7 @@
   <ItemGroup>
     <ClInclude Include="DropEngine.h" />
     <ClInclude Include="History.h" />
+    <ClInclude Include="Version.h" />
     <ClInclude Include="AppWindows.inc" />
   </ItemGroup>
   <ItemGroup>

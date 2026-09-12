@@ -1,4 +1,4 @@
-Register Drop Counter — Visual Studio 2022
+Register Drop Counter  2.4.0  (2026-09-12)  -  Visual Studio 2022
 ==========================================
 
 THE FILE YOU OPEN IS:

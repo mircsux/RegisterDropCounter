@@ -13,6 +13,7 @@
 
 #include "DropEngine.h"
 #include "History.h"
+#include "Version.h"
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(linker, \

@@ -358,6 +358,7 @@ constexpr int IDC_A_TEXT = 9102;
 constexpr int IDC_A_CLOSE = 9103;
 constexpr int IDC_A_LOGBTN = 9104;
 constexpr int IDC_A_LOG = 9105;
+constexpr int IDC_A_VER = 9106;
 
 const wchar_t kAboutBody[] =
     L"Count a drawer\r\n"
@@ -385,33 +386,50 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
-    L"2026-09-09  Windows, phone, and web app\r\n"
-    L"- Visual Studio 2022 C++ app (RegisterDropCounter.sln) with the same drop math as the spreadsheet.\r\n"
-    L"- Works on Android phones in the browser: register chips, large yellow count cells, Tab through counts.\r\n"
+    L"v2.4.0  2026-09-12  Version number\r\n"
+    L"- Visible product version on the header, About tab, and Windows About window.\r\n"
+    L"- The version is bumped whenever the counter is updated.\r\n"
+    L"\r\n"
+    L"v2.3.0  2026-09-09  Enter, resize, GitHub\r\n"
+    L"- Enter moves through count cells the same as Tab. Shift+Enter goes back. After $100 it opens the next register.\r\n"
+    L"- Windows app reflows the header, grid, cash log, History, and About when you resize the window.\r\n"
+    L"- Project is on GitHub at mircsux/RegisterDropCounter.\r\n"
+    L"\r\n"
+    L"v2.2.0  2026-09-09  About, polish, changelog\r\n"
+    L"- About window credits Ronald Robbins Jr and SuperGrok, with how-to instructions.\r\n"
+    L"- Show changelog button opens a scrollable list of Excel history, drop fixes, Windows, and the phone layout.\r\n"
+    L"- Sunken borders. Unicode arrows and dashes replaced with plain ASCII.\r\n"
+    L"- Bold count numbers taken back out.\r\n"
+    L"\r\n"
+    L"v2.1.0  2026-09-09  History, $2, copy buttons\r\n"
     L"- History: Clear and Clear All save a snapshot. Search by date, restore, or clear the tab.\r\n"
     L"- $2 bills count, drop, and copy in every register and cash-log table.\r\n"
     L"- R1-R10 copy one register. Copy Cash Log, Copy EOD, and Copy Reset copy that table only.\r\n"
-    L"- About window with how-to. Changelog is under the Show changelog button.\r\n"
+    L"- Tab walks the yellow count cells.\r\n"
+    L"\r\n"
+    L"v2.0.0  2026-09-09  Windows, phone, and web app\r\n"
+    L"- Visual Studio 2022 C++ app (RegisterDropCounter.sln) with the same drop math as the spreadsheet.\r\n"
+    L"- Works on Android phones in the browser: register chips, large yellow count cells.\r\n"
     L"- Integer-cent engine. The old Excel 5-pennies / MROUND bug is gone.\r\n"
     L"\r\n"
-    L"2026-08-10  Excel workbook\r\n"
+    L"v1.2.0  2026-08-10  Excel workbook\r\n"
     L"- RegisterDropCounter-08102026.xlsx.\r\n"
     L"- Drop and Left columns show counts (integers), not dollar amounts. Amount and the Total row stay currency.\r\n"
     L"\r\n"
-    L"2024-07-21  Excel\r\n"
+    L"v1.1.3  2024-07-21  Excel\r\n"
     L"- Reduced filesize from 13 MB to under 1 MB by removing the 3D spider on the ChangeLog sheet.\r\n"
     L"\r\n"
-    L"2024-07-20  Excel drop fixes\r\n"
+    L"v1.1.2  2024-07-20  Excel drop fixes\r\n"
     L"- Math drops quarters, nickels, and dimes before coin rolls.\r\n"
     L"- A penny roll still drops before 50 loose pennies. Nobody wants to count out 50 pennies.\r\n"
     L"- Outline around roll columns for visibility.\r\n"
     L"- CopyHack no longer pastes into the ChangeLog. Pastebin must stay internally labelled Sheet2 and hidden. Do not move those sheets; it breaks the copy macros.\r\n"
     L"- Narrowed the 5 pennies bug to MROUND on pennies (fixed later in this app).\r\n"
     L"\r\n"
-    L"2024-07-08  Excel\r\n"
+    L"v1.1.1  2024-07-08  Excel\r\n"
     L"- Added coin rolls to the Drop and Left columns.\r\n"
     L"\r\n"
-    L"2024-07-06  Excel cash log\r\n"
+    L"v1.1.0  2024-07-06  Excel cash log\r\n"
     L"- Register Reset Total turns red when it does not equal the Register Base. Over/under is exactly the drop error.\r\n"
     L"- Dropdown for Register Base so it cannot be set to a junk value.\r\n"
     L"- EOD and Reset copy buttons. Excel cannot copy text-only, so a hidden sheet recopy hack pastes into the national cash log without breaking its format.\r\n"
@@ -423,6 +441,10 @@ LRESULT CALLBACK AboutProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       MakeStatic(h, IDC_A_CREDIT, L"Designed by Ronald Robbins Jr and SuperGrok", 16, 12, 590, 24,
                  SS_LEFT);
       SendMessageW(GetDlgItem(h, IDC_A_CREDIT), WM_SETFONT, (WPARAM)gFontBold, TRUE);
+      wchar_t ver[80];
+      swprintf(ver, 80, L"Version %s", rdc::VersionStamp());
+      MakeStatic(h, IDC_A_VER, ver, 16, 36, 590, 20, SS_LEFT);
+      SendMessageW(GetDlgItem(h, IDC_A_VER), WM_SETFONT, (WPARAM)gMono, TRUE);
       HWND ed = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", kAboutBody,
                                 WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | ES_MULTILINE |
                                     ES_READONLY | ES_AUTOVSCROLL,
@@ -498,23 +520,18 @@ void RelayoutAbout(HWND h) {
   const int pad = 16;
   const int btnH = 28;
   const int yClose = H - pad - btnH;
-  const int yBtn = 44;
-  int yText = 42;
+  const int yText = 62;
   int textH;
-  int logY = 0, logH = 0;
   if (gAboutLogOpen) {
-    const int remain = yClose - yBtn - btnH - 16;
+    const int remain = yClose - yText - btnH - 16;
     textH = (std::max)(80, remain * 42 / 100);
-    logY = yBtn + btnH + 8;
-    logH = (std::max)(80, yClose - 12 - logY);
   } else {
-    textH = (std::max)(80, yBtn - yText);
-    // how-to fills down to the button
     textH = (std::max)(80, yClose - yText - btnH - 20);
   }
   HDWP dwp = BeginDeferWindowPos(8);
   if (!dwp) return;
   Place(&dwp, h, IDC_A_CREDIT, pad, 12, W - pad * 2, 24);
+  Place(&dwp, h, IDC_A_VER, pad, 36, W - pad * 2, 20);
   Place(&dwp, h, IDC_A_TEXT, pad, yText, W - pad * 2, textH);
   Place(&dwp, h, IDC_A_LOGBTN, pad, yText + textH + 8, 140, btnH);
   if (gAboutLogOpen)
@@ -547,6 +564,9 @@ void ShowAbout(HWND owner) {
   gAbout = CreateWindowExW(WS_EX_APPWINDOW, kAboutClass, L"About",
                            WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 80,
                            rc.top + 40, 640, 660, owner, nullptr, gInst, nullptr);
+  wchar_t aboutTitle[64];
+  swprintf(aboutTitle, 64, L"About  %s", rdc::kAppVersion);
+  SetWindowTextW(gAbout, aboutTitle);
   ShowWindow(gAbout, SW_SHOW);
   UpdateWindow(gAbout);
 }
@@ -900,6 +920,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   gMain = CreateWindowExW(0, kClass, L"Register Drop Counter",
                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, 1400,
                           820, nullptr, nullptr, inst, nullptr);
+  wchar_t mainTitle[80];
+  swprintf(mainTitle, 80, L"Register Drop Counter  %s", rdc::kAppVersion);
+  SetWindowTextW(gMain, mainTitle);
   ShowWindow(gMain, show);
   UpdateWindow(gMain);
 
