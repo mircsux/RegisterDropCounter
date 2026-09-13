@@ -446,6 +446,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.6.1  2026-09-13  Windows build fix\r\n"
+    L"- Visual Studio compile no longer fails on the OneDrive folder picker.\r\n"
+    L"\r\n"
     L"v2.6.0  2026-09-12  OneDrive history sync\r\n"
     L"- Options menu: turn Sync history to OneDrive on or off.\r\n"
     L"- Save, Load, and Sync now use RegisterDropCounter.history in your OneDrive folder so PCs stay together.\r\n"
@@ -681,29 +684,18 @@ void RefreshOptionsUi(HWND h) {
 }
 
 bool BrowseForFolder(HWND owner, std::wstring* out) {
-  IFileOpenDialog* dlg = nullptr;
-  if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
-                              IID_PPV_ARGS(&dlg))))
-    return false;
-  DWORD opt = 0;
-  dlg->GetOptions(&opt);
-  dlg->SetOptions(opt | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
-  dlg->SetTitle(L"Choose OneDrive folder for history");
-  bool ok = false;
-  if (SUCCEEDED(dlg->Show(owner))) {
-    IShellItem* item = nullptr;
-    if (SUCCEEDED(dlg->GetResult(&item)) && item) {
-      PWSTR path = nullptr;
-      if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path)) && path) {
-        *out = path;
-        CoTaskMemFree(path);
-        ok = !out->empty();
-      }
-      item->Release();
-    }
-  }
-  dlg->Release();
-  return ok;
+  BROWSEINFOW bi{};
+  bi.hwndOwner = owner;
+  bi.lpszTitle = L"Choose OneDrive folder for history";
+  bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+  LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+  if (!pidl) return false;
+  wchar_t path[MAX_PATH];
+  const BOOL ok = SHGetPathFromIDListW(pidl, path);
+  CoTaskMemFree(pidl);
+  if (!ok || !path[0]) return false;
+  *out = path;
+  return true;
 }
 
 void RelayoutOptions(HWND h) {
@@ -738,12 +730,12 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SendMessageW(GetDlgItem(h, IDC_O_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 56, 400,
-                               24, h, (HMENU)IDC_O_SYNC, gInst, nullptr);
+                               24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
       SendMessageW(chk, WM_SETFONT, (WPARAM)gFont, TRUE);
       HWND help = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", kOptHelp,
                                   WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | ES_MULTILINE |
                                       ES_READONLY | ES_AUTOVSCROLL,
-                                  16, 88, 590, 140, h, (HMENU)IDC_O_HELP, gInst, nullptr);
+                                  16, 88, 590, 140, h, (HMENU)(INT_PTR)IDC_O_HELP, gInst, nullptr);
       SendMessageW(help, WM_SETFONT, (WPARAM)gFont, TRUE);
       MakeStatic(h, IDC_O_PATHLBL, L"Folder", 16, 236, 80, 22, SS_LEFT);
       MakeEditText(h, IDC_O_PATH, 100, 232, 380, 28);

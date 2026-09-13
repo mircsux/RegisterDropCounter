@@ -4,7 +4,6 @@
 #include "History.h"
 
 #include <shlobj.h>
-#include <knownfolders.h>
 
 #include <fstream>
 #include <string>
@@ -33,7 +32,10 @@ inline std::wstring DetectOneDriveRoot() {
     }
   }
   PWSTR p = nullptr;
-  if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_SkyDriveFolder, 0, nullptr, &p)) && p) {
+  // OneDrive known folder (FOLDERID_SkyDriveFolder), inlined so any SDK compiles.
+  static const GUID kOneDriveFolder = {
+      0xA52BBA46, 0xE9E1, 0x435f, {0xB3, 0xD9, 0x28, 0xDA, 0xA6, 0x48, 0xC0, 0xF6}};
+  if (SUCCEEDED(SHGetKnownFolderPath(kOneDriveFolder, 0, nullptr, &p)) && p) {
     std::wstring s(p);
     CoTaskMemFree(p);
     return s;

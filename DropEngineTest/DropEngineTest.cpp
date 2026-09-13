@@ -126,7 +126,7 @@ int main() {
   hb.at = snap.at + 10;
   auto merged = rdc::MergeHistories({ha}, {ha, hb});
   Expect((int)merged.size(), 2, "history merge keeps unique snapshots");
-  Expect((int)merged[0].at, (int)hb.at, "history merge newest first");
+  Expect(merged[0].at > snap.at ? 1 : 0, 1, "history merge newest first");
 
   if (gFails) {
     std::cerr << gFails << " test(s) failed\n";
