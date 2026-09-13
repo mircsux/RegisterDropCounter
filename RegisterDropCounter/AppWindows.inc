@@ -20,6 +20,9 @@ void FillDenomList(HWND h, const rdc::HistoryEntry& e, int reg) {
              {lab, std::to_wstring(r.counts.n[d]), std::to_wstring(r.drop.n[d]),
               std::to_wstring(r.left.n[d])});
   }
+  wchar_t cap[48];
+  swprintf(cap, 48, L"Counts for R%d", reg + 1);
+  SetDlgItemTextW(h, IDC_H_DENLBL, cap);
 }
 
 void FillDetailList(HWND h, const rdc::HistoryEntry& e) {
@@ -77,6 +80,7 @@ void RefreshHistoryUi(HWND h) {
     gHistSel = -1;
     ListView_DeleteAllItems(GetDlgItem(h, IDC_H_DETAIL));
     ListView_DeleteAllItems(GetDlgItem(h, IDC_H_DENOM));
+    SetDlgItemTextW(h, IDC_H_DENLBL, L"Counts for selected register");
     return;
   }
   if (!found) gHistSel = idx[0];
@@ -86,40 +90,42 @@ void RefreshHistoryUi(HWND h) {
 }
 
 void LayoutHistory(HWND h) {
-  MakeStatic(h, IDC_H_DATELBL, L"Search by date (YYYY-MM-DD)", 12, 12, 220, 22, SS_LEFT);
-  MakeEditText(h, IDC_H_DATE, 240, 10, 130, 24);
-  MakeBtn(h, IDC_H_TODAY, L"Today", 380, 10, 70, 24);
-  MakeBtn(h, IDC_H_ALL, L"All dates", 456, 10, 90, 24);
-  MakeStatic(h, IDC_H_STAMP, rdc::FormatSheetDate().c_str(), 560, 12, 300, 22, SS_RIGHT);
+  MakeStatic(h, IDC_H_TITLE, L"History", 16, 10, 200, 24, SS_LEFT);
+  SendMessageW(GetDlgItem(h, IDC_H_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
+  MakeStatic(h, IDC_H_STAMP, rdc::FormatSheetDate().c_str(), 400, 12, 300, 22, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_H_STAMP), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
-  HWND list = MakeLv(h, IDC_H_LIST, 12, 42, 850, 180);
+  MakeStatic(h, IDC_H_DATELBL, L"Date", 16, 58, 40, 22, SS_LEFT);
+  MakeEditText(h, IDC_H_DATE, 60, 54, 140, 28);
+  MakeBtn(h, IDC_H_TODAY, L"Today", 208, 54, 72, 28);
+  MakeBtn(h, IDC_H_ALL, L"All dates", 288, 54, 92, 28);
+
+  HWND list = MakeLv(h, IDC_H_LIST, 16, 92, 850, 160);
   InsertCol(list, 0, L"When", 210);
   InsertCol(list, 1, L"Action", 200);
   InsertCol(list, 2, L"Counted", 80);
   InsertCol(list, 3, L"Amount", 120);
   InsertCol(list, 4, L"Drop", 120);
 
-  MakeBtn(h, IDC_H_RESTORE, L"Restore to Counter", 12, 230, 160, 28);
-  MakeBtn(h, IDC_H_CLEAR, L"Clear history", 180, 230, 120, 28);
-  MakeBtn(h, IDC_H_CLOSE, L"Close", 310, 230, 80, 28);
-  MakeStatic(h, IDC_H_STATUS, L"", 400, 234, 460, 22, SS_LEFT);
+  MakeBtn(h, IDC_H_RESTORE, L"Restore to Counter", 16, 262, 160, 28);
+  MakeBtn(h, IDC_H_CLEAR, L"Clear history", 184, 262, 120, 28);
+  MakeBtn(h, IDC_H_CLOSE, L"Close", 312, 262, 80, 28);
+  MakeStatic(h, IDC_H_STATUS, L"", 400, 266, 300, 22, SS_RIGHT);
 
-  MakeStatic(h, IDC_H_DETLBL, L"Registers in this snapshot - click a row for denom counts", 12, 268,
-             500, 20, SS_LEFT);
-  HWND det = MakeLv(h, IDC_H_DETAIL, 12, 290, 850, 160);
+  MakeStatic(h, IDC_H_DETLBL, L"Registers in this snapshot", 16, 300, 400, 18, SS_LEFT);
+  HWND det = MakeLv(h, IDC_H_DETAIL, 16, 320, 420, 160);
   InsertCol(det, 0, L"Reg", 50);
-  InsertCol(det, 1, L"Amount", 130);
-  InsertCol(det, 2, L"Drop", 130);
-  InsertCol(det, 3, L"Left", 130);
-  InsertCol(det, 4, L"Status", 160);
+  InsertCol(det, 1, L"Amount", 90);
+  InsertCol(det, 2, L"Drop", 90);
+  InsertCol(det, 3, L"Left", 90);
+  InsertCol(det, 4, L"Status", 100);
 
-  MakeStatic(h, IDC_H_DENLBL, L"Denomination counts", 12, 458, 300, 20, SS_LEFT);
-  HWND den = MakeLv(h, IDC_H_DENOM, 12, 480, 850, 200);
-  InsertCol(den, 0, L"Denom", 120);
-  InsertCol(den, 1, L"Count", 90);
-  InsertCol(den, 2, L"Drop", 90);
-  InsertCol(den, 3, L"Left", 90);
+  MakeStatic(h, IDC_H_DENLBL, L"Counts for selected register", 450, 300, 400, 18, SS_LEFT);
+  HWND den = MakeLv(h, IDC_H_DENOM, 450, 320, 420, 200);
+  InsertCol(den, 0, L"Denom", 100);
+  InsertCol(den, 1, L"Count", 80);
+  InsertCol(den, 2, L"Drop", 80);
+  InsertCol(den, 3, L"Left", 80);
   RelayoutHistory(h);
 }
 
@@ -128,13 +134,19 @@ void RelayoutHistory(HWND h) {
   GetClientRect(h, &rc);
   const int W = rc.right;
   const int H = rc.bottom;
-  if (W < 200 || H < 160) return;
-  const int pad = 12;
-  const int topH = 28;
+  if (W < 240 || H < 180) return;
+
+  const int pad = 16;
+  const int gap = 10;
+  const int headerH = 44;
+  const int btnH = 28;
+  const int searchH = 28;
+  const int lblH = 18;
   auto set = [&](int id, HFONT f) {
     HWND c = GetDlgItem(h, id);
     if (c) SendMessageW(c, WM_SETFONT, (WPARAM)f, TRUE);
   };
+  set(IDC_H_TITLE, gFontBold);
   set(IDC_H_DATELBL, gFont);
   set(IDC_H_DATE, gMono);
   set(IDC_H_TODAY, gFont);
@@ -150,38 +162,81 @@ void RelayoutHistory(HWND h) {
   set(IDC_H_DETAIL, gMono);
   set(IDC_H_DENOM, gMono);
 
-  const int y1 = pad + topH + 8;
-  const int body = H - y1 - pad;
-  const int listH = (std::max)(80, body * 28 / 100);
-  const int btnY = y1 + listH + 8;
-  const int btnH = 28;
-  const int detY = btnY + btnH + 8;
-  const int detH = (std::max)(80, body * 24 / 100);
-  const int denLblY = detY + detH + 6;
-  const int denY = denLblY + 20;
-  const int denH = (std::max)(80, H - denY - pad);
+  const int ySearch = headerH + 12;
+  const int yList = ySearch + searchH + gap;
+  const bool sideBySide = W >= 900;
+  const int belowSearch = H - pad - yList;
+  const int chrome = gap + btnH + gap + lblH + 4;
+  int listH;
+  int panelH;
+  if (sideBySide) {
+    panelH = (std::max)(160, belowSearch * 46 / 100);
+    listH = belowSearch - chrome - panelH;
+    if (listH < 110) {
+      listH = 110;
+      panelH = belowSearch - chrome - listH;
+    }
+    if (panelH < 140) {
+      panelH = 140;
+      listH = belowSearch - chrome - panelH;
+      if (listH < 90) listH = 90;
+    }
+  } else {
+    const int stackedChrome = gap + btnH + gap + (lblH + 4) * 2 + gap;
+    listH = belowSearch * 28 / 100;
+    if (listH < 90) listH = 90;
+    if (listH > 180) listH = 180;
+    int rest = belowSearch - listH - stackedChrome;
+    int each = rest / 2;
+    if (each < 90) {
+      each = 90;
+      listH = belowSearch - stackedChrome - each * 2;
+      if (listH < 80) listH = 80;
+    }
+    panelH = each;
+  }
+
+  const int yBtn = yList + listH + gap;
+  const int yPanels = yBtn + btnH + gap;
+  const int innerW = W - pad * 2;
 
   HDWP dwp = BeginDeferWindowPos(20);
   if (!dwp) return;
-  Place(&dwp, h, IDC_H_DATELBL, pad, pad, 220, topH);
-  Place(&dwp, h, IDC_H_DATE, pad + 224, pad, 130, topH);
-  Place(&dwp, h, IDC_H_TODAY, pad + 362, pad, 70, topH);
-  Place(&dwp, h, IDC_H_ALL, pad + 438, pad, 90, topH);
-  Place(&dwp, h, IDC_H_STAMP, W - pad - 300, pad, 300, topH);
-  Place(&dwp, h, IDC_H_LIST, pad, y1, W - pad * 2, listH);
-  Place(&dwp, h, IDC_H_RESTORE, pad, btnY, 160, btnH);
-  Place(&dwp, h, IDC_H_CLEAR, pad + 168, btnY, 120, btnH);
-  Place(&dwp, h, IDC_H_CLOSE, pad + 296, btnY, 80, btnH);
-  Place(&dwp, h, IDC_H_STATUS, pad + 384, btnY + 4, W - pad - 384, btnH);
-  Place(&dwp, h, IDC_H_DETLBL, pad, detY - 22, W - pad * 2, 20);
-  Place(&dwp, h, IDC_H_DETAIL, pad, detY, W - pad * 2, detH);
-  Place(&dwp, h, IDC_H_DENLBL, pad, denLblY, 300, 18);
-  Place(&dwp, h, IDC_H_DENOM, pad, denY, W - pad * 2, denH);
+  Place(&dwp, h, IDC_H_TITLE, pad, 10, 220, 24);
+  Place(&dwp, h, IDC_H_STAMP, W - pad - 340, 12, 340, 22);
+  Place(&dwp, h, IDC_H_DATELBL, pad, ySearch + 5, 40, 20);
+  Place(&dwp, h, IDC_H_DATE, pad + 48, ySearch, 140, searchH);
+  Place(&dwp, h, IDC_H_TODAY, pad + 196, ySearch, 72, searchH);
+  Place(&dwp, h, IDC_H_ALL, pad + 276, ySearch, 92, searchH);
+  Place(&dwp, h, IDC_H_LIST, pad, yList, innerW, listH);
+
+  Place(&dwp, h, IDC_H_RESTORE, pad, yBtn, 160, btnH);
+  Place(&dwp, h, IDC_H_CLEAR, pad + 168, yBtn, 120, btnH);
+  Place(&dwp, h, IDC_H_CLOSE, pad + 296, yBtn, 80, btnH);
+  const int statusX = pad + 388;
+  const int statusW = (std::max)(80, W - pad - statusX);
+  Place(&dwp, h, IDC_H_STATUS, statusX, yBtn + 4, statusW, 20);
+
+  if (sideBySide) {
+    const int colGap = 12;
+    const int colW = (innerW - colGap) / 2;
+    const int xR = pad + colW + colGap;
+    Place(&dwp, h, IDC_H_DETLBL, pad, yPanels, colW, lblH);
+    Place(&dwp, h, IDC_H_DETAIL, pad, yPanels + lblH + 4, colW, panelH);
+    Place(&dwp, h, IDC_H_DENLBL, xR, yPanels, colW, lblH);
+    Place(&dwp, h, IDC_H_DENOM, xR, yPanels + lblH + 4, colW, panelH);
+  } else {
+    Place(&dwp, h, IDC_H_DETLBL, pad, yPanels, innerW, lblH);
+    Place(&dwp, h, IDC_H_DETAIL, pad, yPanels + lblH + 4, innerW, panelH);
+    const int yDen = yPanels + lblH + 4 + panelH + gap;
+    Place(&dwp, h, IDC_H_DENLBL, pad, yDen, innerW, lblH);
+    Place(&dwp, h, IDC_H_DENOM, pad, yDen + lblH + 4, innerW, panelH);
+  }
   EndDeferWindowPos(dwp);
 
   const int listParts[] = {210, 200, 80, 120, 120};
-  const int detParts[] = {50, 130, 130, 130, 160};
-  const int denParts[] = {120, 90, 90, 90};
+  const int detParts[] = {48, 90, 90, 90, 110};
+  const int denParts[] = {110, 80, 80, 80};
   SizeLvCols(GetDlgItem(h, IDC_H_LIST), listParts, 5);
   SizeLvCols(GetDlgItem(h, IDC_H_DETAIL), detParts, 5);
   SizeLvCols(GetDlgItem(h, IDC_H_DENOM), denParts, 4);
@@ -242,18 +297,22 @@ LRESULT CALLBACK HistProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       HDC dc = (HDC)w;
       RECT rc;
       GetClientRect(h, &rc);
-      FillRect(dc, &rc, Brush(kSheet));
+      RECT band{0, 0, rc.right, 44};
+      FillRect(dc, &band, Brush(kNavy));
+      RECT rest{0, 44, rc.right, rc.bottom};
+      FillRect(dc, &rest, Brush(kSheet));
       return 1;
     }
     case WM_CTLCOLORSTATIC: {
       HDC dc = (HDC)w;
+      int id = GetDlgCtrlID((HWND)l);
+      if (id == IDC_H_TITLE || id == IDC_H_STAMP) {
+        SetBkColor(dc, kNavy);
+        SetTextColor(dc, RGB(255, 255, 255));
+        return (LRESULT)Brush(kNavy);
+      }
       SetBkColor(dc, kSheet);
       SetTextColor(dc, RGB(26, 36, 46));
-      int id = GetDlgCtrlID((HWND)l);
-      if (id == IDC_H_STAMP) {
-        SetTextColor(dc, kNavy);
-        SetBkColor(dc, kSheet);
-      }
       return (LRESULT)Brush(kSheet);
     }
     case WM_NOTIFY: {
@@ -309,8 +368,8 @@ LRESULT CALLBACK HistProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       return 0;
     case WM_GETMINMAXINFO: {
       auto* m = (MINMAXINFO*)l;
-      m->ptMinTrackSize.x = 640;
-      m->ptMinTrackSize.y = 480;
+      m->ptMinTrackSize.x = 760;
+      m->ptMinTrackSize.y = 560;
       return 0;
     }
     case WM_CLOSE:
@@ -346,7 +405,7 @@ void ShowHistory(HWND owner) {
   GetWindowRect(owner, &rc);
   gHist = CreateWindowExW(WS_EX_APPWINDOW, kHistClass, L"History",
                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-                          rc.left + 40, rc.top + 40, 890, 740, owner, nullptr, gInst, nullptr);
+                          rc.left + 40, rc.top + 40, 1040, 720, owner, nullptr, gInst, nullptr);
   ShowWindow(gHist, SW_SHOW);
   UpdateWindow(gHist);
 }
@@ -386,6 +445,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.5.1  2026-09-12  History window layout\r\n"
+    L"- History window no longer overlaps. Navy header, date search on its own row, and registers beside denomination counts.\r\n"
+    L"\r\n"
     L"v2.5.0  2026-09-12  Remember window\r\n"
     L"- Windows app restores its last screen position, size, and maximized state when you open it again.\r\n"
     L"\r\n"

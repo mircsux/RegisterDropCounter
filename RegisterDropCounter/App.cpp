@@ -72,6 +72,7 @@ constexpr int IDC_H_STAMP = 9011;
 constexpr int IDC_H_DATELBL = 9012;
 constexpr int IDC_H_DETLBL = 9013;
 constexpr int IDC_H_DENLBL = 9014;
+constexpr int IDC_H_TITLE = 9015;
 
 constexpr wchar_t kHistClass[] = L"RegisterDropCounterHistoryWnd";
 
