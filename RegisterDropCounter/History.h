@@ -3,6 +3,7 @@
 
 #include "DropEngine.h"
 
+#include <algorithm>
 #include <ctime>
 #include <fstream>
 #include <string>
@@ -119,6 +120,31 @@ inline std::vector<int> FilterByDate(const std::vector<HistoryEntry>& hist,
     if (dateKey.empty() || DateKey(hist[i].at).rfind(dateKey, 0) == 0) idx.push_back(i);
   }
   return idx;
+}
+
+inline std::wstring EntryKey(const HistoryEntry& e) {
+  wchar_t buf[80];
+  swprintf(buf, 80, L"%lld:%d:%d", (long long)e.at, (int)e.kind, e.registerIndex);
+  return buf;
+}
+
+/** Union of two snapshot lists. Newest first, capped at kHistoryLimit. */
+inline std::vector<HistoryEntry> MergeHistories(const std::vector<HistoryEntry>& a,
+                                                const std::vector<HistoryEntry>& b) {
+  std::vector<HistoryEntry> out;
+  out.reserve(a.size() + b.size());
+  auto add = [&](const HistoryEntry& e) {
+    const std::wstring k = EntryKey(e);
+    for (const auto& have : out)
+      if (EntryKey(have) == k) return;
+    out.push_back(e);
+  };
+  for (const auto& e : a) add(e);
+  for (const auto& e : b) add(e);
+  std::sort(out.begin(), out.end(),
+            [](const HistoryEntry& x, const HistoryEntry& y) { return x.at > y.at; });
+  if ((int)out.size() > kHistoryLimit) out.resize(kHistoryLimit);
+  return out;
 }
 
 inline void SaveHistory(const std::wstring& path, const std::vector<HistoryEntry>& hist) {

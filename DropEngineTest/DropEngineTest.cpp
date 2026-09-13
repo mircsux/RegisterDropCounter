@@ -121,6 +121,13 @@ int main() {
   Expect(snap.registerIndex, 0, "history stores register index");
   Expect(snap.kind, rdc::HistRegister, "history kind is register");
 
+  rdc::HistoryEntry ha = snap;
+  rdc::HistoryEntry hb = snap;
+  hb.at = snap.at + 10;
+  auto merged = rdc::MergeHistories({ha}, {ha, hb});
+  Expect((int)merged.size(), 2, "history merge keeps unique snapshots");
+  Expect((int)merged[0].at, (int)hb.at, "history merge newest first");
+
   if (gFails) {
     std::cerr << gFails << " test(s) failed\n";
     return 1;

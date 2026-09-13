@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+#include <shobjidl.h>
 #include <algorithm>
 #include <cstring>
 #include <ctime>
@@ -13,6 +14,7 @@
 
 #include "DropEngine.h"
 #include "History.h"
+#include "OneDrive.h"
 #include "Version.h"
 
 #pragma comment(lib, "comctl32.lib")
@@ -38,6 +40,7 @@ constexpr int IDC_BASELBL = 112;
 constexpr int IDC_HISTORY = 113;
 constexpr int IDC_TODAY = 114;
 constexpr int IDC_ABOUT = 115;
+constexpr int IDC_OPTIONS = 116;
 constexpr int IDC_COUNT0 = 200;
 constexpr int IDC_BADGE0 = 250;
 constexpr int IDC_AMT0 = 300;
@@ -91,6 +94,7 @@ int gBase = 400;
 int gActive = 0;
 bool gRefreshing = false;
 std::vector<rdc::HistoryEntry> gHistory;
+rdc::Options gOptions;
 std::wstring gHistFilter;
 int gHistSel = -1;
 int gHistDetailReg = 0;
@@ -141,6 +145,15 @@ std::wstring HistoryPath() {
   const auto slash = p.find_last_of(L"\\/");
   if (slash != std::wstring::npos) p.resize(slash + 1);
   return p + L"RegisterDropCounter.history";
+}
+
+std::wstring OptionsPath() {
+  wchar_t buf[MAX_PATH];
+  GetModuleFileNameW(nullptr, buf, MAX_PATH);
+  std::wstring p(buf);
+  const auto slash = p.find_last_of(L"\\/");
+  if (slash != std::wstring::npos) p.resize(slash + 1);
+  return p + L"RegisterDropCounter.options";
 }
 
 std::wstring WindowPath() {
@@ -208,7 +221,50 @@ bool LoadWindowPlacement(WINDOWPLACEMENT* wp) {
   return true;
 }
 
-void PersistHistory() { rdc::SaveHistory(HistoryPath(), gHistory); }
+void PersistHistory() {
+  rdc::SaveHistory(HistoryPath(), gHistory);
+  if (!gOptions.syncOneDrive) return;
+  const std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
+  if (folder.empty() || !rdc::EnsureFolder(folder)) return;
+  rdc::SaveHistory(rdc::CloudHistoryPath(gOptions), gHistory);
+}
+
+void PersistOptions() { rdc::SaveOptions(OptionsPath(), gOptions); }
+
+std::wstring SyncHistoryNow() {
+  if (!gOptions.syncOneDrive) return L"OneDrive sync is off.";
+  const std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
+  if (folder.empty())
+    return L"OneDrive folder not found. Choose a folder in Options.";
+  if (!rdc::EnsureFolder(folder)) return L"Could not create the OneDrive folder.";
+  const std::wstring cloud = rdc::CloudHistoryPath(gOptions);
+  std::vector<rdc::HistoryEntry> remote;
+  rdc::LoadHistory(cloud, &remote);
+  gHistory = rdc::MergeHistories(gHistory, remote);
+  rdc::SaveHistory(HistoryPath(), gHistory);
+  rdc::SaveHistory(cloud, gHistory);
+  wchar_t msg[160];
+  swprintf(msg, 160, L"Synced %d snapshot(s) with OneDrive.", (int)gHistory.size());
+  return msg;
+}
+
+bool LoadHistoryFromCloud() {
+  const std::wstring cloud = rdc::CloudHistoryPath(gOptions);
+  if (cloud.empty()) return false;
+  std::vector<rdc::HistoryEntry> remote;
+  if (!rdc::LoadHistory(cloud, &remote)) return false;
+  gHistory = rdc::MergeHistories(gHistory, remote);
+  PersistHistory();
+  return true;
+}
+
+bool SaveHistoryToCloud() {
+  if (!gOptions.syncOneDrive) return false;
+  const std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
+  if (folder.empty() || !rdc::EnsureFolder(folder)) return false;
+  rdc::SaveHistory(rdc::CloudHistoryPath(gOptions), gHistory);
+  return true;
+}
 
 void SnapshotBeforeClear(rdc::HistoryKind kind, int registerIndex) {
   rdc::HistoryEntry e;
@@ -570,6 +626,7 @@ void ApplyMainFonts(HWND h) {
   set(IDC_SAMPLE, gFont);
   set(IDC_CLEAR, gFont);
   set(IDC_HISTORY, gFont);
+  set(IDC_OPTIONS, gFont);
   set(IDC_ABOUT, gFont);
   set(IDC_TABS, gFont);
   set(IDC_CLEAR_REG, gFont);
@@ -605,7 +662,7 @@ void Relayout(HWND h) {
 
   const int pad = (std::max)(8, W / 140);
   const int btnH = (std::max)(22, (std::min)(30, H / 26));
-  const bool twoLine = W < 1260;
+  const bool twoLine = W < 1400;
   const int headerH = twoLine ? (btnH * 2 + 18) : (btnH + 16);
   gHeaderH = headerH;
   const int statusH = (std::max)(20, H / 34);
@@ -650,6 +707,8 @@ void Relayout(HWND h) {
   Place(&dwp, h, IDC_CLEAR, bx, by, 90, btnH);
   bx += 98;
   Place(&dwp, h, IDC_HISTORY, bx, by, 80, btnH);
+  bx += 88;
+  Place(&dwp, h, IDC_OPTIONS, bx, by, 80, btnH);
   bx += 88;
   Place(&dwp, h, IDC_ABOUT, bx, by, 72, btnH);
 

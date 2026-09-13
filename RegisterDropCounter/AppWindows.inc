@@ -1,5 +1,6 @@
 void RelayoutHistory(HWND h);
 void RelayoutAbout(HWND h);
+void RelayoutOptions(HWND h);
 
 int CurrentHistIndex() {
   auto idx = rdc::FilterByDate(gHistory, gHistFilter);
@@ -445,6 +446,10 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.6.0  2026-09-12  OneDrive history sync\r\n"
+    L"- Options menu: turn Sync history to OneDrive on or off.\r\n"
+    L"- Save, Load, and Sync now use RegisterDropCounter.history in your OneDrive folder so PCs stay together.\r\n"
+    L"\r\n"
     L"v2.5.1  2026-09-12  History window layout\r\n"
     L"- History window no longer overlaps. Navy header, date search on its own row, and registers beside denomination counts.\r\n"
     L"\r\n"
@@ -636,6 +641,256 @@ void ShowAbout(HWND owner) {
   UpdateWindow(gAbout);
 }
 
+constexpr wchar_t kOptClass[] = L"RegisterDropCounterOptionsWnd";
+HWND gOpt = nullptr;
+constexpr int IDC_O_TITLE = 9201;
+constexpr int IDC_O_SYNC = 9202;
+constexpr int IDC_O_HELP = 9203;
+constexpr int IDC_O_PATHLBL = 9204;
+constexpr int IDC_O_PATH = 9205;
+constexpr int IDC_O_BROWSE = 9206;
+constexpr int IDC_O_SAVE = 9207;
+constexpr int IDC_O_LOAD = 9208;
+constexpr int IDC_O_SYNCNOW = 9209;
+constexpr int IDC_O_STATUS = 9210;
+constexpr int IDC_O_CLOSE = 9211;
+
+const wchar_t kOptHelp[] =
+    L"When this is on, Clear and Clear All also write snapshots to a file in your "
+    L"OneDrive folder. OneDrive copies that file to your other PCs.\r\n\r\n"
+    L"On another PC, turn the same option on and click Sync now to pull those snapshots "
+    L"in. Load reads OneDrive into this PC. Save writes this PC's history out.\r\n\r\n"
+    L"The file is RegisterDropCounter.history inside the folder below. Leave the folder "
+    L"blank to use OneDrive\\RegisterDropCounter automatically.";
+
+void RefreshOptionsUi(HWND h) {
+  SendMessageW(GetDlgItem(h, IDC_O_SYNC), BM_SETCHECK,
+               gOptions.syncOneDrive ? BST_CHECKED : BST_UNCHECKED, 0);
+  std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
+  if (folder.empty()) folder = gOptions.folder;
+  SetDlgItemTextW(h, IDC_O_PATH, folder.c_str());
+  std::wstring st;
+  if (!gOptions.syncOneDrive) {
+    st = L"OneDrive sync is off. History stays on this PC.";
+  } else if (rdc::ResolvedSyncFolder(gOptions).empty()) {
+    st = L"OneDrive folder not found. Choose a folder, or install the OneDrive app.";
+  } else {
+    st = L"Sync is on. File: RegisterDropCounter.history";
+  }
+  SetDlgItemTextW(h, IDC_O_STATUS, st.c_str());
+}
+
+bool BrowseForFolder(HWND owner, std::wstring* out) {
+  IFileOpenDialog* dlg = nullptr;
+  if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+                              IID_PPV_ARGS(&dlg))))
+    return false;
+  DWORD opt = 0;
+  dlg->GetOptions(&opt);
+  dlg->SetOptions(opt | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+  dlg->SetTitle(L"Choose OneDrive folder for history");
+  bool ok = false;
+  if (SUCCEEDED(dlg->Show(owner))) {
+    IShellItem* item = nullptr;
+    if (SUCCEEDED(dlg->GetResult(&item)) && item) {
+      PWSTR path = nullptr;
+      if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path)) && path) {
+        *out = path;
+        CoTaskMemFree(path);
+        ok = !out->empty();
+      }
+      item->Release();
+    }
+  }
+  dlg->Release();
+  return ok;
+}
+
+void RelayoutOptions(HWND h) {
+  RECT rc{};
+  GetClientRect(h, &rc);
+  const int W = rc.right;
+  const int H = rc.bottom;
+  if (W < 240 || H < 180) return;
+  const int pad = 16;
+  const int btnH = 28;
+  HDWP dwp = BeginDeferWindowPos(12);
+  if (!dwp) return;
+  Place(&dwp, h, IDC_O_TITLE, pad, 10, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_SYNC, pad, 56, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_HELP, pad, 88, W - pad * 2, 140);
+  Place(&dwp, h, IDC_O_PATHLBL, pad, 236, 80, 22);
+  Place(&dwp, h, IDC_O_PATH, pad + 84, 232, W - pad * 2 - 84 - 128, 28);
+  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 232, 120, 28);
+  const int yAct = 276;
+  Place(&dwp, h, IDC_O_SAVE, pad, yAct, 150, btnH);
+  Place(&dwp, h, IDC_O_LOAD, pad + 158, yAct, 160, btnH);
+  Place(&dwp, h, IDC_O_SYNCNOW, pad + 326, yAct, 100, btnH);
+  Place(&dwp, h, IDC_O_STATUS, pad, yAct + 40, W - pad * 2, 40);
+  Place(&dwp, h, IDC_O_CLOSE, (W - 90) / 2, H - pad - btnH, 90, btnH);
+  EndDeferWindowPos(dwp);
+}
+
+LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
+  switch (msg) {
+    case WM_CREATE: {
+      MakeStatic(h, IDC_O_TITLE, L"Options", 16, 10, 400, 24, SS_LEFT);
+      SendMessageW(GetDlgItem(h, IDC_O_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
+      HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
+                               WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 56, 400,
+                               24, h, (HMENU)IDC_O_SYNC, gInst, nullptr);
+      SendMessageW(chk, WM_SETFONT, (WPARAM)gFont, TRUE);
+      HWND help = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", kOptHelp,
+                                  WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | ES_MULTILINE |
+                                      ES_READONLY | ES_AUTOVSCROLL,
+                                  16, 88, 590, 140, h, (HMENU)IDC_O_HELP, gInst, nullptr);
+      SendMessageW(help, WM_SETFONT, (WPARAM)gFont, TRUE);
+      MakeStatic(h, IDC_O_PATHLBL, L"Folder", 16, 236, 80, 22, SS_LEFT);
+      MakeEditText(h, IDC_O_PATH, 100, 232, 380, 28);
+      MakeBtn(h, IDC_O_BROWSE, L"Choose folder", 490, 232, 120, 28);
+      MakeBtn(h, IDC_O_SAVE, L"Save to OneDrive", 16, 276, 150, 28);
+      MakeBtn(h, IDC_O_LOAD, L"Load from OneDrive", 174, 276, 160, 28);
+      MakeBtn(h, IDC_O_SYNCNOW, L"Sync now", 342, 276, 100, 28);
+      MakeStatic(h, IDC_O_STATUS, L"", 16, 316, 590, 40, SS_LEFT);
+      MakeBtn(h, IDC_O_CLOSE, L"Close", 266, 380, 90, 28);
+      RefreshOptionsUi(h);
+      RelayoutOptions(h);
+      return 0;
+    }
+    case WM_ERASEBKGND: {
+      HDC dc = (HDC)w;
+      RECT rc;
+      GetClientRect(h, &rc);
+      RECT band{0, 0, rc.right, 44};
+      FillRect(dc, &band, Brush(kNavy));
+      RECT rest{0, 44, rc.right, rc.bottom};
+      FillRect(dc, &rest, Brush(kSheet));
+      return 1;
+    }
+    case WM_CTLCOLORSTATIC: {
+      HDC dc = (HDC)w;
+      int id = GetDlgCtrlID((HWND)l);
+      if (id == IDC_O_TITLE) {
+        SetBkColor(dc, kNavy);
+        SetTextColor(dc, RGB(255, 255, 255));
+        return (LRESULT)Brush(kNavy);
+      }
+      SetBkColor(dc, kSheet);
+      SetTextColor(dc, RGB(26, 36, 46));
+      return (LRESULT)Brush(kSheet);
+    }
+    case WM_CTLCOLOREDIT: {
+      HDC dc = (HDC)w;
+      SetBkColor(dc, RGB(255, 255, 255));
+      SetTextColor(dc, RGB(26, 36, 46));
+      return (LRESULT)GetStockObject(WHITE_BRUSH);
+    }
+    case WM_CTLCOLORBTN: {
+      HDC dc = (HDC)w;
+      SetBkColor(dc, kSheet);
+      SetTextColor(dc, RGB(26, 36, 46));
+      return (LRESULT)Brush(kSheet);
+    }
+    case WM_COMMAND: {
+      int id = LOWORD(w);
+      int code = HIWORD(w);
+      if (id == IDC_O_SYNC) {
+        gOptions.syncOneDrive = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
+        PersistOptions();
+        if (gOptions.syncOneDrive) {
+          std::wstring msg = SyncHistoryNow();
+          SetDlgItemTextW(h, IDC_O_STATUS, msg.c_str());
+          if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+        } else {
+          RefreshOptionsUi(h);
+        }
+      } else if (id == IDC_O_BROWSE) {
+        std::wstring dir;
+        if (BrowseForFolder(h, &dir)) {
+          gOptions.folder = dir;
+          PersistOptions();
+          RefreshOptionsUi(h);
+        }
+      } else if (id == IDC_O_PATH && code == EN_KILLFOCUS) {
+        wchar_t buf[MAX_PATH];
+        GetDlgItemTextW(h, IDC_O_PATH, buf, MAX_PATH);
+        gOptions.folder = buf;
+        PersistOptions();
+      } else if (id == IDC_O_SAVE) {
+        if (!gOptions.syncOneDrive) {
+          SetDlgItemTextW(h, IDC_O_STATUS, L"Turn OneDrive sync on first.");
+        } else if (SaveHistoryToCloud()) {
+          SetDlgItemTextW(h, IDC_O_STATUS, L"Saved history to OneDrive.");
+        } else {
+          SetDlgItemTextW(h, IDC_O_STATUS, L"Could not save. Check the folder.");
+        }
+      } else if (id == IDC_O_LOAD) {
+        if (!gOptions.syncOneDrive) {
+          SetDlgItemTextW(h, IDC_O_STATUS, L"Turn OneDrive sync on first.");
+        } else if (LoadHistoryFromCloud()) {
+          wchar_t msg[80];
+          swprintf(msg, 80, L"Loaded and merged %d snapshot(s).", (int)gHistory.size());
+          SetDlgItemTextW(h, IDC_O_STATUS, msg);
+          if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+        } else {
+          SetDlgItemTextW(h, IDC_O_STATUS, L"No history file in that OneDrive folder yet.");
+        }
+      } else if (id == IDC_O_SYNCNOW) {
+        std::wstring msg = SyncHistoryNow();
+        SetDlgItemTextW(h, IDC_O_STATUS, msg.c_str());
+        if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+      } else if (id == IDC_O_CLOSE) {
+        DestroyWindow(h);
+      }
+      return 0;
+    }
+    case WM_SIZE:
+      if (w != SIZE_MINIMIZED) RelayoutOptions(h);
+      return 0;
+    case WM_GETMINMAXINFO: {
+      auto* m = (MINMAXINFO*)l;
+      m->ptMinTrackSize.x = 560;
+      m->ptMinTrackSize.y = 420;
+      return 0;
+    }
+    case WM_CLOSE:
+      DestroyWindow(h);
+      return 0;
+    case WM_DESTROY:
+      gOpt = nullptr;
+      return 0;
+  }
+  return DefWindowProcW(h, msg, w, l);
+}
+
+void ShowOptions(HWND owner) {
+  if (gOpt && IsWindow(gOpt)) {
+    ShowWindow(gOpt, SW_SHOW);
+    SetForegroundWindow(gOpt);
+    RefreshOptionsUi(gOpt);
+    return;
+  }
+  static bool registered = false;
+  if (!registered) {
+    WNDCLASSEXW wc{sizeof(wc)};
+    wc.lpfnWndProc = OptProc;
+    wc.hInstance = gInst;
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = Brush(kSheet);
+    wc.lpszClassName = kOptClass;
+    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    RegisterClassExW(&wc);
+    registered = true;
+  }
+  RECT rc;
+  GetWindowRect(owner, &rc);
+  gOpt = CreateWindowExW(WS_EX_APPWINDOW, kOptClass, L"Options",
+                         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 60, rc.top + 60, 680, 460,
+                         owner, nullptr, gInst, nullptr);
+  ShowWindow(gOpt, SW_SHOW);
+  UpdateWindow(gOpt);
+}
+
 void Layout(HWND h) {
   MakeStatic(h, IDC_TITLE, L"Register Drop Counter", 16, 12, 280, 24, SS_LEFT);
   SendMessageW(GetDlgItem(h, IDC_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
@@ -653,7 +908,8 @@ void Layout(HWND h) {
   MakeBtn(h, IDC_SAMPLE, L"Load sample", 630, 10, 100, 26);
   MakeBtn(h, IDC_CLEAR, L"Clear All", 738, 10, 90, 26);
   MakeBtn(h, IDC_HISTORY, L"History", 836, 10, 80, 26);
-  MakeBtn(h, IDC_ABOUT, L"About", 924, 10, 72, 26);
+  MakeBtn(h, IDC_OPTIONS, L"Options", 924, 10, 80, 26);
+  MakeBtn(h, IDC_ABOUT, L"About", 1012, 10, 72, 26);
   MakeStatic(h, IDC_TODAY, rdc::FormatSheetDate().c_str(), 1004, 14, 370, 20, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_TODAY), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
@@ -767,7 +1023,9 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
   switch (msg) {
     case WM_CREATE:
       Layout(h);
+      rdc::LoadOptions(OptionsPath(), &gOptions);
       rdc::LoadHistory(HistoryPath(), &gHistory);
+      if (gOptions.syncOneDrive) LoadHistoryFromCloud();
       if (!LoadState()) rdc::LoadSample(gRegs);
       {
         HWND combo = GetDlgItem(h, IDC_BASE);
@@ -914,6 +1172,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
       } else if (id == IDC_HISTORY) {
         ShowHistory(h);
+      } else if (id == IDC_OPTIONS) {
+        ShowOptions(h);
       } else if (id == IDC_ABOUT) {
         ShowAbout(h);
       } else if (id == IDC_COPY_DEP || id == IDC_COPY_EOD || id == IDC_COPY_RST ||
@@ -937,6 +1197,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SaveWindowPlacement(h);
       SaveState();
       PersistHistory();
+      PersistOptions();
       PostQuitMessage(0);
       return 0;
   }
@@ -966,6 +1227,7 @@ bool EnterAsTab(HWND root, const MSG& msg) {
 
 int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   SetProcessDPIAware();
+  CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   gInst = inst;
   INITCOMMONCONTROLSEX icc{sizeof(icc),
                            ICC_WIN95_CLASSES | ICC_TAB_CLASSES | ICC_LISTVIEW_CLASSES};
@@ -1009,6 +1271,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     if (gHist && IsWindow(gHist) &&
         (msg.hwnd == gHist || IsChild(gHist, msg.hwnd)))
       root = gHist;
+    else if (gOpt && IsWindow(gOpt) &&
+             (msg.hwnd == gOpt || IsChild(gOpt, msg.hwnd)))
+      root = gOpt;
     else if (gAbout && IsWindow(gAbout) &&
              (msg.hwnd == gAbout || IsChild(gAbout, msg.hwnd)))
       root = gAbout;
@@ -1020,5 +1285,6 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     TranslateMessage(&msg);
     DispatchMessageW(&msg);
   }
+  CoUninitialize();
   return (int)msg.wParam;
 }
