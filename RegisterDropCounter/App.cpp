@@ -102,6 +102,7 @@ rdc::Options gOptions;
 std::wstring gHistFilter;
 int gHistSel = -1;
 int gHistDetailReg = 0;
+RECT gRollBox{};
 
 const COLORREF kNavy = RGB(31, 78, 121);
 const COLORREF kNavyMid = RGB(46, 117, 182);
@@ -725,8 +726,11 @@ void Relayout(HWND h) {
     Place(&dwp, h, IDC_HDR0 + i, colX[i], yHdr, colW[i], (std::max)(16, rowH - 4));
 
   const int y0 = yHdr + (std::max)(16, rowH - 4) + 2;
+  const int rollGap = 3;
   for (int i = 0; i < rdc::DenomCount; ++i) {
-    const int y = y0 + i * rowH;
+    int y = y0 + i * rowH;
+    if (i >= rdc::PRoll) y += rollGap;
+    if (i > rdc::QRoll) y += rollGap;
     Place(&dwp, h, IDC_BADGE0 + i, colX[0], y, colW[0], rowH - 2);
     Place(&dwp, h, IDC_COUNT0 + i, colX[1], y, colW[1], rowH - 2);
     Place(&dwp, h, IDC_DENOM0 + i, colX[2], y, colW[2], rowH - 2);
@@ -734,7 +738,10 @@ void Relayout(HWND h) {
     Place(&dwp, h, IDC_DROP0 + i, colX[4], y, colW[4], rowH - 2);
     Place(&dwp, h, IDC_LEFT0 + i, colX[5], y, colW[5], rowH - 2);
   }
-  const int ty = y0 + rdc::DenomCount * rowH + 2;
+  const int ty = y0 + rdc::DenomCount * rowH + 2 + rollGap * 2;
+  const int rollTop = y0 + rdc::PRoll * rowH + rollGap;
+  const int rollBot = y0 + (rdc::QRoll + 1) * rowH + rollGap - 2;
+  gRollBox = {colX[0] - 2, rollTop - 3, colX[5] + colW[5] + 2, rollBot + 3};
   Place(&dwp, h, IDC_TOTAL_LBL, colX[0], ty, colW[0] + colW[1] + colW[2], rowH);
   Place(&dwp, h, IDC_TOTAL_AMT, colX[3], ty, colW[3], rowH);
   Place(&dwp, h, IDC_TOTAL_DROP, colX[4], ty, colW[4], rowH);

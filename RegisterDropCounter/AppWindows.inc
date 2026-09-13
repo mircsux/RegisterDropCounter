@@ -446,6 +446,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.6.2  2026-09-13  Roll outline\r\n"
+    L"- Black box around the P/N/D/Q coin-roll rows, same as the Excel sheet.\r\n"
+    L"\r\n"
     L"v2.6.1  2026-09-13  Windows build fix\r\n"
     L"- Visual Studio compile no longer fails on the OneDrive folder picker.\r\n"
     L"\r\n"
@@ -1042,6 +1045,15 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       FillRect(dc, &band, Brush(kNavy));
       RECT rest{0, gHeaderH, rc.right, rc.bottom};
       FillRect(dc, &rest, Brush(kSheet));
+      if (gRollBox.right > gRollBox.left) {
+        HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+        HGDIOBJ oldPen = SelectObject(dc, pen);
+        HGDIOBJ oldBr = SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
+        Rectangle(dc, gRollBox.left, gRollBox.top, gRollBox.right, gRollBox.bottom);
+        SelectObject(dc, oldPen);
+        SelectObject(dc, oldBr);
+        DeleteObject(pen);
+      }
       return 1;
     }
     case WM_CTLCOLORSTATIC: {
