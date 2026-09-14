@@ -425,7 +425,7 @@ const wchar_t kAboutBody[] =
     L"1. Set the Register Base ($100, $200, $300, $400, or $500).\r\n"
     L"2. Open a register (R1-R10).\r\n"
     L"3. Type counts in the yellow cells, pennies through $100, including $2 bills.\r\n"
-    L"4. Tab or Enter moves to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
+    L"4. Tab, Enter, or the arrow keys move to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
     L"6. The Left total turns green when it equals the register base. Red means that drawer is still off base.\r\n"
     L"\r\n"
@@ -446,6 +446,10 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.7.0  2026-09-13  Phone pad and arrow keys\r\n"
+    L"- Phone and tablet get a number pad (0-9, Clear, Enter) so you can count without the system keyboard covering the yellow cells.\r\n"
+    L"- Arrow keys move through count cells the same way as Tab and Enter.\r\n"
+    L"\r\n"
     L"v2.6.2  2026-09-13  Roll outline\r\n"
     L"- Black box around the P/N/D/Q coin-roll rows, same as the Excel sheet.\r\n"
     L"\r\n"
@@ -1215,13 +1219,22 @@ bool EnterAsTab(HWND root, const MSG& msg) {
   if (msg.hwnd != root && !IsChild(root, msg.hwnd)) return false;
   const bool enter = msg.wParam == VK_RETURN;
   const bool tab = msg.wParam == VK_TAB;
-  if (!enter && !tab) return false;
-  if (msg.message == WM_CHAR) return true;
-  if (msg.message != WM_KEYDOWN) return false;
-  const bool back = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+  const bool fwdArrow = msg.wParam == VK_RIGHT || msg.wParam == VK_DOWN;
+  const bool backArrow = msg.wParam == VK_LEFT || msg.wParam == VK_UP;
   HWND focus = GetFocus();
   const int id = focus ? GetDlgCtrlID(focus) : 0;
-  if (root == gMain && id >= IDC_COUNT0 && id < IDC_COUNT0 + rdc::DenomCount) {
+  const bool onCount =
+      root == gMain && id >= IDC_COUNT0 && id < IDC_COUNT0 + rdc::DenomCount;
+  if (onCount) {
+    if (!enter && !tab && !fwdArrow && !backArrow) return false;
+  } else if (!enter && !tab) {
+    return false;
+  }
+  if (msg.message == WM_CHAR) return true;
+  if (msg.message != WM_KEYDOWN) return false;
+  const bool back =
+      backArrow || ((enter || tab) && (GetKeyState(VK_SHIFT) & 0x8000) != 0);
+  if (onCount) {
     MoveCountFocus(root, id, back);
     return true;
   }

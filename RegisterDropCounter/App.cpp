@@ -536,11 +536,15 @@ void FocusNextTab(HWND root, bool back) {
 }
 
 LRESULT CALLBACK EditProc(HWND h, UINT m, WPARAM w, LPARAM l) {
-  if (m == WM_GETDLGCODE && (w == VK_RETURN || w == VK_TAB)) {
+  const bool nav = w == VK_RETURN || w == VK_TAB || w == VK_LEFT || w == VK_RIGHT ||
+                   w == VK_UP || w == VK_DOWN;
+  if (m == WM_GETDLGCODE && nav) {
     return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_HASSETSEL;
   }
-  if (m == WM_KEYDOWN && (w == VK_RETURN || w == VK_TAB)) {
-    const bool back = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+  if (m == WM_KEYDOWN && nav) {
+    const bool back =
+        w == VK_LEFT || w == VK_UP ||
+        ((w == VK_RETURN || w == VK_TAB) && (GetKeyState(VK_SHIFT) & 0x8000) != 0);
     HWND parent = GetParent(h);
     const int id = GetDlgCtrlID(h);
     if (id >= IDC_COUNT0 && id < IDC_COUNT0 + rdc::DenomCount)
