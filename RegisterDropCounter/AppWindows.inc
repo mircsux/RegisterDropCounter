@@ -446,6 +446,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.7.1  2026-09-13  Phone app start\r\n"
+    L"- Phone layout opens again after the number pad was added.\r\n"
+    L"\r\n"
     L"v2.7.0  2026-09-13  Phone pad and arrow keys\r\n"
     L"- Phone and tablet get a number pad (0-9, Clear, Enter) so you can count without the system keyboard covering the yellow cells.\r\n"
     L"- Arrow keys move through count cells the same way as Tab and Enter.\r\n"
