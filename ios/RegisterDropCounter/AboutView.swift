@@ -29,6 +29,7 @@ struct AboutView: View {
                         Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.")
                         Text("Changelog")
                             .font(.headline)
+                        Text("v2.12.0  Android app (Kotlin + Jetpack Compose). Same drop math.")
                         Text("v2.11.0  ISO C23 console app with the same drop math. No C++.")
                         Text("v2.10.0  iPhone app (SwiftUI). Same drop math as Windows and the web counter.")
                         Text("v2.9.0  Named tills — tap R1–R10 to rename.")

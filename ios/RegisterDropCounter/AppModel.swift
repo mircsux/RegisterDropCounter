@@ -12,7 +12,7 @@ final class AppModel: ObservableObject {
     @Published var bag = ""
     @Published var initials = ""
 
-    static let version = "2.11.0"
+    static let version = "2.12.0"
     static let releaseDate = "2026-09-15"
 
     private let historyLimit = 200

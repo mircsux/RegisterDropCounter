@@ -1,0 +1,12 @@
+Register Drop Counter  2.12.0  (2026-09-15)  -  Android (Android Studio)
+
+1. Unzip this folder.
+2. Open the folder in Android Studio (File > Open). Let Gradle sync.
+3. Plug in a phone with USB debugging, or start an emulator (API 26+).
+4. Press Run. The app is Drop Counter on the home screen.
+
+Same drop math as Windows, iPhone, and C23: yellow counts, $2 bills,
+named tills, undo, drop slip, history, cash-log copy.
+
+You can also add the web counter to an Android home screen from Chrome:
+menu > Add to Home screen / Install app.

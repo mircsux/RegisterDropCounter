@@ -448,6 +448,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.12.0  2026-09-15  Android app\r\n"
+    L"- Native Kotlin + Jetpack Compose Android app with the same drop math, yellow counts, number pad, undo, drop slip, named tills, and history.\r\n"
+    L"\r\n"
     L"v2.11.0  2026-09-15  ISO C23 implementation\r\n"
     L"- Hosted C23 library and console app: same drop math, $2 bills, undo, named tills, drop slip, and cash-log TSV. No C++.\r\n"
     L"- Visual Studio solution RegisterDropCounter-C23.sln (/std:clatest) and a gcc Makefile.\r\n"
