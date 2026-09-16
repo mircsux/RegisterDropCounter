@@ -48,6 +48,7 @@ constexpr int IDC_ABOUT = 115;
 constexpr int IDC_OPTIONS = 116;
 constexpr int IDC_UNDO = 117;
 constexpr int IDC_SLIP = 118;
+constexpr int IDC_TAB_EDIT = 119;
 constexpr int IDC_COUNT0 = 200;
 constexpr int IDC_BADGE0 = 250;
 constexpr int IDC_AMT0 = 300;
@@ -108,6 +109,8 @@ int gHistSel = -1;
 std::wstring gSlipBag;
 std::wstring gSlipInitials;
 int gSlipReg = 0;
+std::wstring gNames[rdc::kRegisterCount];
+int gTabClick = -1;
 RECT gRollBox{};
 
 const COLORREF kNavy = RGB(31, 78, 121);
@@ -147,6 +150,15 @@ std::wstring StatePath() {
   const auto slash = p.find_last_of(L"\\/");
   if (slash != std::wstring::npos) p.resize(slash + 1);
   return p + L"RegisterDropCounter.state";
+}
+
+std::wstring NamesPath() {
+  wchar_t buf[MAX_PATH];
+  GetModuleFileNameW(nullptr, buf, MAX_PATH);
+  std::wstring p(buf);
+  const auto slash = p.find_last_of(L"\\/");
+  if (slash != std::wstring::npos) p.resize(slash + 1);
+  return p + L"RegisterDropCounter.names";
 }
 
 std::wstring SlipPath() {
@@ -319,6 +331,49 @@ void LoadSlipFields() {
   while (!gSlipInitials.empty() &&
          (gSlipInitials.back() == L'\r' || gSlipInitials.back() == L'\n'))
     gSlipInitials.pop_back();
+}
+
+void DefaultTillNames() {
+  for (int i = 0; i < rdc::kRegisterCount; ++i) {
+    wchar_t buf[8];
+    swprintf(buf, 8, L"R%d", i + 1);
+    gNames[i] = buf;
+  }
+}
+
+std::wstring SanitizeTillName(const wchar_t* raw, int index) {
+  std::wstring s = raw ? raw : L"";
+  while (!s.empty() && (s.front() == L' ' || s.front() == L'\t')) s.erase(s.begin());
+  while (!s.empty() && (s.back() == L' ' || s.back() == L'\t' || s.back() == L'\r')) s.pop_back();
+  if (s.size() > 20) s.resize(20);
+  if (s.empty()) {
+    wchar_t buf[8];
+    swprintf(buf, 8, L"R%d", index + 1);
+    return buf;
+  }
+  return s;
+}
+
+void PersistTillNames() {
+  std::wofstream out(NamesPath().c_str());
+  if (!out) return;
+  out << L"RDCN1\n";
+  for (int i = 0; i < rdc::kRegisterCount; ++i) out << gNames[i] << L"\n";
+}
+
+void LoadTillNames() {
+  DefaultTillNames();
+  std::wifstream in(NamesPath().c_str());
+  if (!in) return;
+  std::wstring mag;
+  std::getline(in, mag);
+  if (mag != L"RDCN1") return;
+  for (int i = 0; i < rdc::kRegisterCount; ++i) {
+    std::wstring line;
+    if (!std::getline(in, line)) break;
+    while (!line.empty() && (line.back() == L'\r' || line.back() == L'\n')) line.pop_back();
+    gNames[i] = SanitizeTillName(line.c_str(), i);
+  }
 }
 
 void SaveState() {
@@ -684,6 +739,7 @@ void ApplyMainFonts(HWND h) {
   set(IDC_TABS, gFont);
   set(IDC_CLEAR_REG, gFont);
   set(IDC_SLIP, gFont);
+  set(IDC_TAB_EDIT, gFont);
   set(IDC_COPY_R, gFont);
   set(IDC_COPY_DEP, gFont);
   set(IDC_COPY_EOD, gFont);

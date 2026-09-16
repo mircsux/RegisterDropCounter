@@ -2,7 +2,7 @@
 
 A counting tool for cash drawers. Open `RegisterDropCounter.sln` in Visual Studio 2022.
 
-Version **2.8.0** (2026-09-15). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.11.0** (2026-09-15). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open in Visual Studio
 
@@ -18,6 +18,7 @@ To check drop math against the 2026-08-10 workbook sample, build and run **DropE
 ## Using it
 
 - Yellow **Count** cells are the only inputs. Tab, Enter, and arrow keys move through them. On a phone, use the number pad.
+- Click a till name (defaults **R1-R10**) to rename it.
 - **Drop** is how many of each denom to pull so the drawer resets to the register base.
 - **Left** turns green when it equals the register base, red when it does not.
 - Drop order: $100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies.
@@ -40,3 +41,10 @@ Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe 
 | `RegisterDropCounter/Version.h` | Product version |
 | `RegisterDropCounter/App.cpp` | Win32 UI, clipboard, History, About |
 | `DropEngineTest/DropEngineTest.cpp` | Workbook sample tests |
+
+## Other builds (same drop math)
+
+- **Windows (C++ Win32)** — this folder. Open `RegisterDropCounter.sln`.
+- **iPhone (SwiftUI)** — `ios/RegisterDropCounter.xcodeproj`. See `ios/HOW_TO_OPEN.txt`.
+- **ISO C23 console** — `c23/RegisterDropCounter-C23.sln` or `c23/Makefile`. No C++.
+

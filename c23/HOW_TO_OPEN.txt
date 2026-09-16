@@ -1,0 +1,24 @@
+Register Drop Counter  2.11.0  (2026-09-15)  -  ISO C23
+
+This is hosted ISO C (C23 / C2x). No C++. No Windows headers in the
+drop engine. Visual Studio builds the same sources as a Console app.
+
+Visual Studio 2022
+  1. Open RegisterDropCounter-C23.sln
+  2. Set the C23 console project as Startup
+  3. Build (LanguageStandard_C = stdclatest)
+  4. Run. Type: sample
+     then: show 1
+     then: 20 103
+
+gcc / clang
+  make          (GCC 12 uses -std=c2x; GCC 13+ can make CSTD=c23)
+  make test     workbook sample + $2 bills + undo + names
+
+Commands
+  sample            load the 2026-08-10 drawers
+  show 1            print R1 with Count / Amount / Drop / Left
+  20 103            set twenties on the current till
+  slip              bag slip
+  tsv deposit       cash-log TSV
+  clear / undo / history / name Drive-thru

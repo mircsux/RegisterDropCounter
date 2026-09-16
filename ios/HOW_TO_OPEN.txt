@@ -1,0 +1,16 @@
+Register Drop Counter  2.11.0  (2026-09-15)  -  iPhone (Xcode)
+
+1. Unzip this folder on a Mac.
+2. Open RegisterDropCounter.xcodeproj in Xcode 15 or newer.
+3. Plug in your iPhone and select it as the run destination.
+4. Signing: select the RegisterDropCounter target, Team = your Apple ID
+   (free account is enough to run on your own phone).
+5. Press Run. Trust the developer on the iPhone if iOS asks
+   (Settings > General > VPN & Device Management).
+
+The app is Drop Counter on the home screen. Same drop math as the
+Windows and web versions: yellow counts, $2 bills, undo, drop slip,
+named tills, history.
+
+You can also add the web counter to an iPhone home screen from Safari:
+Share > Add to Home Screen.

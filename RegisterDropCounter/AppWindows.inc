@@ -56,7 +56,7 @@ void RefreshHistoryUi(HWND h) {
     const auto& e = gHistory[i];
     auto sum = rdc::Summarize(e);
     AddLvRow(lv, row,
-             {rdc::FormatWhen(e.at), rdc::HistoryLabel(e), std::to_wstring(sum.counted),
+             {rdc::FormatWhen(e.at), rdc::HistoryLabel(e, gNames), std::to_wstring(sum.counted),
               rdc::Money(sum.amountCents), rdc::Money(sum.dropCents)});
     LVITEMW it{};
     it.mask = LVIF_PARAM;
@@ -252,7 +252,7 @@ void RestoreSelected(HWND owner) {
   const auto& e = gHistory[i];
   wchar_t ask[160];
   swprintf(ask, 160, L"Replace live counts with this snapshot?\n\n%s\n%s",
-           rdc::FormatWhen(e.at).c_str(), rdc::HistoryLabel(e).c_str());
+           rdc::FormatWhen(e.at).c_str(), rdc::HistoryLabel(e, gNames).c_str());
   if (MessageBoxW(owner, ask, L"Restore snapshot", MB_OKCANCEL | MB_ICONQUESTION) != IDOK) return;
   gBase = e.base;
   for (int r = 0; r < rdc::kRegisterCount; ++r) gRegs[r] = e.registers[r];
@@ -423,7 +423,7 @@ constexpr int IDC_A_VER = 9106;
 const wchar_t kAboutBody[] =
     L"Count a drawer\r\n"
     L"1. Set the Register Base ($100, $200, $300, $400, or $500).\r\n"
-    L"2. Open a register (R1-R10).\r\n"
+    L"2. Open a register (R1-R10). Click the till name to rename it.\r\n"
     L"3. Type counts in the yellow cells, pennies through $100, including $2 bills.\r\n"
     L"4. Tab, Enter, or the arrow keys move to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
@@ -448,6 +448,17 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.11.0  2026-09-15  ISO C23 implementation\r\n"
+    L"- Hosted C23 library and console app: same drop math, $2 bills, undo, named tills, drop slip, and cash-log TSV. No C++.\r\n"
+    L"- Visual Studio solution RegisterDropCounter-C23.sln (/std:clatest) and a gcc Makefile.\r\n"
+    L"\r\n"
+    L"v2.10.0  2026-09-15  iPhone app\r\n"
+    L"- Native SwiftUI iPhone app with the same drop math, yellow counts, number pad, undo, drop slip, named tills, and history.\r\n"
+    L"- Add the web counter to an iPhone home screen from Safari (Share, Add to Home Screen).\r\n"
+    L"\r\n"
+    L"v2.9.0  2026-09-15  Named tills\r\n"
+    L"- Click a till name (defaults R1-R10) to rename it. Names save with the sheet.\r\n"
+    L"\r\n"
     L"v2.8.0  2026-09-15  Undo clear and drop slip\r\n"
     L"- Undo clear brings back the last drawer you cleared, without opening History.\r\n"
     L"- Drop slip prints a one-page bag slip: date, register, drop by denom, total, bag number, and initials.\r\n"
@@ -924,7 +935,7 @@ void UndoLastClear(HWND h) {
   EnableUndoBtn(h);
   wchar_t msg[80];
   if (e.kind == rdc::HistRegister)
-    swprintf(msg, 80, L"Brought back Register %d.", e.registerIndex + 1);
+    swprintf(msg, 80, L"Brought back %s.", gNames[e.registerIndex].c_str());
   else
     swprintf(msg, 80, L"Brought back all registers from Clear All.");
   Status(h, msg);
@@ -939,7 +950,7 @@ std::wstring BuildSlipText(int reg, const wchar_t* bag, const wchar_t* initials)
   s += rdc::FormatSheetDate();
   s += L"\r\n";
   wchar_t line[160];
-  swprintf(line, 160, L"Register: R%d\r\nRegister base: %s\r\n", reg + 1,
+  swprintf(line, 160, L"Register: %s\r\nRegister base: %s\r\n", gNames[reg].c_str(),
            rdc::Money(gBase * 100).c_str());
   s += line;
   s += L"Bag / seal #: ";
@@ -1168,6 +1179,51 @@ void ShowSlip(HWND owner, int reg) {
   UpdateWindow(gSlip);
 }
 
+void ApplyTabNames(HWND h) {
+  HWND tabs = GetDlgItem(h, IDC_TABS);
+  if (!tabs) return;
+  for (int i = 0; i < rdc::kRegisterCount; ++i) {
+    wchar_t buf[24];
+    swprintf(buf, 24, L"%s", gNames[i].c_str());
+    TCITEMW it{};
+    it.mask = TCIF_TEXT;
+    it.pszText = buf;
+    TabCtrl_SetItem(tabs, i, &it);
+  }
+}
+
+void HideTillEdit(HWND h) {
+  HWND e = GetDlgItem(h, IDC_TAB_EDIT);
+  if (e) ShowWindow(e, SW_HIDE);
+}
+
+void CommitTillEdit(HWND h) {
+  HWND e = GetDlgItem(h, IDC_TAB_EDIT);
+  if (!e || !IsWindowVisible(e)) return;
+  wchar_t buf[32]{};
+  GetWindowTextW(e, buf, 32);
+  ShowWindow(e, SW_HIDE);
+  gNames[gActive] = SanitizeTillName(buf, gActive);
+  PersistTillNames();
+  ApplyTabNames(h);
+}
+
+void CancelTillEdit(HWND h) { HideTillEdit(h); }
+
+void StartTillEdit(HWND h, int i) {
+  HWND tabs = GetDlgItem(h, IDC_TABS);
+  HWND e = GetDlgItem(h, IDC_TAB_EDIT);
+  if (!tabs || !e || i < 0 || i >= rdc::kRegisterCount) return;
+  RECT rc{};
+  if (!TabCtrl_GetItemRect(tabs, i, &rc)) return;
+  MapWindowPoints(tabs, h, (POINT*)&rc, 2);
+  SetWindowPos(e, HWND_TOP, rc.left, rc.top, (std::max)(40, rc.right - rc.left),
+               (std::max)(20, rc.bottom - rc.top), SWP_SHOWWINDOW);
+  SetWindowTextW(e, gNames[i].c_str());
+  SetFocus(e);
+  SendMessageW(e, EM_SETSEL, 0, -1);
+}
+
 void Layout(HWND h) {
   MakeStatic(h, IDC_TITLE, L"Register Drop Counter", 16, 12, 280, 24, SS_LEFT);
   SendMessageW(GetDlgItem(h, IDC_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
@@ -1196,7 +1252,7 @@ void Layout(HWND h) {
   SendMessageW(tabs, WM_SETFONT, (WPARAM)gFont, TRUE);
   for (int i = 0; i < rdc::kRegisterCount; ++i) {
     wchar_t lab[16];
-    swprintf(lab, 16, L"Register %d", i + 1);
+    swprintf(lab, 16, L"R%d", i + 1);
     TCITEMW it{};
     it.mask = TCIF_TEXT;
     it.pszText = lab;
@@ -1205,6 +1261,8 @@ void Layout(HWND h) {
   MakeBtn(h, IDC_SLIP, L"Drop slip", 520, 48, 76, 26);
   MakeBtn(h, IDC_CLEAR_REG, L"Clear", 604, 48, 64, 26);
   MakeBtn(h, IDC_COPY_R, L"Copy R1", 676, 48, 80, 26);
+  HWND tillEdit = MakeEditText(h, IDC_TAB_EDIT, 0, 0, 80, 24);
+  ShowWindow(tillEdit, SW_HIDE);
 
   const int x0 = 16, y0 = 92, rowH = 24;
   const wchar_t* hdrs[] = {L"", L"Count", L"Denom", L"Amount", L"Drop", L"Left"};
@@ -1305,6 +1363,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       rdc::LoadOptions(OptionsPath(), &gOptions);
       rdc::LoadHistory(HistoryPath(), &gHistory);
       LoadSlipFields();
+      LoadTillNames();
+      ApplyTabNames(h);
       if (gOptions.syncOneDrive) LoadHistoryFromCloud();
       if (!LoadState()) rdc::LoadSample(gRegs);
       {
@@ -1390,6 +1450,12 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     }
     case WM_CTLCOLOREDIT: {
       HDC dc = (HDC)w;
+      int id = GetDlgCtrlID((HWND)l);
+      if (id == IDC_TAB_EDIT) {
+        SetBkColor(dc, RGB(255, 255, 255));
+        SetTextColor(dc, RGB(26, 36, 46));
+        return (LRESULT)GetStockObject(WHITE_BRUSH);
+      }
       SetBkColor(dc, kInput);
       SetTextColor(dc, RGB(26, 36, 46));
       return (LRESULT)Brush(kInput);
@@ -1397,10 +1463,21 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_NOTIFY: {
       auto* hdr = (NMHDR*)l;
       if (hdr->idFrom == IDC_TABS && hdr->code == TCN_SELCHANGE) {
+        CommitTillEdit(h);
         ReadCountsFromEdits(h);
         SaveState();
         gActive = TabCtrl_GetCurSel(hdr->hwndFrom);
+        gTabClick = gActive;
         LoadCountsIntoEdits(h);
+      } else if (hdr->idFrom == IDC_TABS && hdr->code == NM_CLICK) {
+        TCHITTESTINFO ht{};
+        POINT pt{};
+        GetCursorPos(&pt);
+        ScreenToClient(hdr->hwndFrom, &pt);
+        ht.pt = pt;
+        const int hit = TabCtrl_HitTest(hdr->hwndFrom, &ht);
+        if (hit >= 0 && hit == gActive && hit == gTabClick) StartTillEdit(h, hit);
+        gTabClick = hit;
       } else if ((hdr->idFrom == IDC_LV_DEP || hdr->idFrom == IDC_LV_EOD ||
                   hdr->idFrom == IDC_LV_RST) &&
                  (hdr->code == NM_CLICK || hdr->code == NM_DBLCLK)) {
@@ -1463,6 +1540,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
       } else if (id == IDC_UNDO) {
         UndoLastClear(h);
+      } else if (id == IDC_TAB_EDIT && code == EN_KILLFOCUS) {
+        CommitTillEdit(h);
       } else if (id == IDC_SLIP) {
         ReadCountsFromEdits(h);
         ShowSlip(h, gActive);
@@ -1505,12 +1584,25 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
 bool EnterAsTab(HWND root, const MSG& msg) {
   if (!root || !IsWindow(root)) return false;
   if (msg.hwnd != root && !IsChild(root, msg.hwnd)) return false;
-  const bool enter = msg.wParam == VK_RETURN;
-  const bool tab = msg.wParam == VK_TAB;
-  const bool fwdArrow = msg.wParam == VK_RIGHT || msg.wParam == VK_DOWN;
-  const bool backArrow = msg.wParam == VK_LEFT || msg.wParam == VK_UP;
   HWND focus = GetFocus();
   const int id = focus ? GetDlgCtrlID(focus) : 0;
+  const bool enter = msg.wParam == VK_RETURN;
+  const bool tab = msg.wParam == VK_TAB;
+  if (root == gMain && id == IDC_TAB_EDIT) {
+    if (msg.message == WM_CHAR && (enter || tab || msg.wParam == VK_ESCAPE)) return true;
+    if (msg.message != WM_KEYDOWN) return false;
+    if (enter || tab) {
+      CommitTillEdit(root);
+      return true;
+    }
+    if (msg.wParam == VK_ESCAPE) {
+      CancelTillEdit(root);
+      return true;
+    }
+    return false;
+  }
+  const bool fwdArrow = msg.wParam == VK_RIGHT || msg.wParam == VK_DOWN;
+  const bool backArrow = msg.wParam == VK_LEFT || msg.wParam == VK_UP;
   const bool onCount =
       root == gMain && id >= IDC_COUNT0 && id < IDC_COUNT0 + rdc::DenomCount;
   if (onCount) {

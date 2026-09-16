@@ -1,0 +1,6 @@
+dropcounter
+rdc_test
+*.state
+*.names
+*.history
+*.slip

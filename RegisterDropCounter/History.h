@@ -89,10 +89,13 @@ inline std::wstring FormatWhen(std::time_t t) {
   return buf;
 }
 
-inline std::wstring HistoryLabel(const HistoryEntry& e) {
+inline std::wstring HistoryLabel(const HistoryEntry& e, const std::wstring* names = nullptr) {
   if (e.kind == HistAll) return L"Cleared all registers";
+  if (names && e.registerIndex >= 0 && e.registerIndex < kRegisterCount &&
+      !names[e.registerIndex].empty())
+    return std::wstring(L"Cleared ") + names[e.registerIndex];
   wchar_t buf[48];
-  swprintf(buf, 48, L"Cleared Register %d", e.registerIndex + 1);
+  swprintf(buf, 48, L"Cleared R%d", e.registerIndex + 1);
   return buf;
 }
 

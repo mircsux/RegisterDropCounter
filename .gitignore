@@ -11,3 +11,7 @@ obj/
 *.window
 *.options
 .vs/
+*.names
+*.slip
+c23/dropcounter
+c23/rdc_test
