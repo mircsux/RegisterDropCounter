@@ -3,9 +3,9 @@
 
 namespace rdc {
 
-inline constexpr const wchar_t* kAppVersion = L"2.7.1";
-inline constexpr const wchar_t* kAppReleaseDate = L"2026-09-13";
+inline constexpr const wchar_t* kAppVersion = L"2.8.0";
+inline constexpr const wchar_t* kAppReleaseDate = L"2026-09-15";
 
-inline const wchar_t* VersionStamp() { return L"2.7.1  (2026-09-13)"; }
+inline const wchar_t* VersionStamp() { return L"2.8.0  (2026-09-15)"; }
 
 }  // namespace rdc

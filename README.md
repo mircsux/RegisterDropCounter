@@ -2,7 +2,7 @@
 
 A counting tool for cash drawers. Open `RegisterDropCounter.sln` in Visual Studio 2022.
 
-Version **2.7.1** (2026-09-13). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.8.0** (2026-09-15). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open in Visual Studio
 
@@ -24,7 +24,8 @@ To check drop math against the 2026-08-10 workbook sample, build and run **DropE
 - **$2 bills** count, drop, and copy like the other bills.
 - **R1-R10** buttons copy one register row as tab-separated values for the national cash log.
 - **Copy Cash Log**, **Copy EOD**, and **Copy Reset** copy that whole table only.
-- **Clear** and **Clear All** save a snapshot first. **History** searches by date, shows old counts, and restores.
+- **Clear** and **Clear All** save a snapshot first. **Undo clear** brings back the last drawer. **History** searches by date, shows old counts, and restores.
+- **Drop slip** prints a one-page bag slip for the safe (date, register, drop by denom, bag number, initials).
 - **About** has the how-to. **Show changelog** lists Excel history, drop fixes, Windows, and the Android phone layout. Today's date is on the main window.
 - **Options** can sync history to OneDrive. Save, Load, and Sync now use `RegisterDropCounter.history` in your OneDrive folder.
 

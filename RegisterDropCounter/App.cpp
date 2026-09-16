@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+#include <commdlg.h>
 #include <shlobj.h>
 #include <objbase.h>
 #include <algorithm>
@@ -45,6 +46,8 @@ constexpr int IDC_HISTORY = 113;
 constexpr int IDC_TODAY = 114;
 constexpr int IDC_ABOUT = 115;
 constexpr int IDC_OPTIONS = 116;
+constexpr int IDC_UNDO = 117;
+constexpr int IDC_SLIP = 118;
 constexpr int IDC_COUNT0 = 200;
 constexpr int IDC_BADGE0 = 250;
 constexpr int IDC_AMT0 = 300;
@@ -86,6 +89,7 @@ constexpr wchar_t kHistClass[] = L"RegisterDropCounterHistoryWnd";
 HINSTANCE gInst = nullptr;
 HWND gMain = nullptr;
 HWND gHist = nullptr;
+HWND gSlip = nullptr;
 HFONT gFont = nullptr;
 HFONT gFontBold = nullptr;
 HFONT gMono = nullptr;
@@ -101,7 +105,9 @@ std::vector<rdc::HistoryEntry> gHistory;
 rdc::Options gOptions;
 std::wstring gHistFilter;
 int gHistSel = -1;
-int gHistDetailReg = 0;
+std::wstring gSlipBag;
+std::wstring gSlipInitials;
+int gSlipReg = 0;
 RECT gRollBox{};
 
 const COLORREF kNavy = RGB(31, 78, 121);
@@ -141,6 +147,15 @@ std::wstring StatePath() {
   const auto slash = p.find_last_of(L"\\/");
   if (slash != std::wstring::npos) p.resize(slash + 1);
   return p + L"RegisterDropCounter.state";
+}
+
+std::wstring SlipPath() {
+  wchar_t buf[MAX_PATH];
+  GetModuleFileNameW(nullptr, buf, MAX_PATH);
+  std::wstring p(buf);
+  const auto slash = p.find_last_of(L"\\/");
+  if (slash != std::wstring::npos) p.resize(slash + 1);
+  return p + L"RegisterDropCounter.slip";
 }
 
 std::wstring HistoryPath() {
@@ -276,6 +291,34 @@ void SnapshotBeforeClear(rdc::HistoryKind kind, int registerIndex) {
   if (!rdc::MakeSnapshot(&e, kind, registerIndex, gBase, gRegs)) return;
   rdc::PrependHistory(&gHistory, e);
   PersistHistory();
+}
+
+void EnableUndoBtn(HWND h) {
+  HWND b = GetDlgItem(h, IDC_UNDO);
+  if (b) EnableWindow(b, gHistory.empty() ? FALSE : TRUE);
+}
+
+void PersistSlipFields() {
+  std::wofstream out(SlipPath().c_str());
+  if (!out) return;
+  out << L"RDCS1\n" << gSlipBag << L"\n" << gSlipInitials << L"\n";
+}
+
+void LoadSlipFields() {
+  gSlipBag.clear();
+  gSlipInitials.clear();
+  std::wifstream in(SlipPath().c_str());
+  if (!in) return;
+  std::wstring mag;
+  std::getline(in, mag);
+  if (mag != L"RDCS1") return;
+  std::getline(in, gSlipBag);
+  std::getline(in, gSlipInitials);
+  while (!gSlipBag.empty() && (gSlipBag.back() == L'\r' || gSlipBag.back() == L'\n'))
+    gSlipBag.pop_back();
+  while (!gSlipInitials.empty() &&
+         (gSlipInitials.back() == L'\r' || gSlipInitials.back() == L'\n'))
+    gSlipInitials.pop_back();
 }
 
 void SaveState() {
@@ -634,11 +677,13 @@ void ApplyMainFonts(HWND h) {
   set(IDC_BASELBL, gFont);
   set(IDC_SAMPLE, gFont);
   set(IDC_CLEAR, gFont);
+  set(IDC_UNDO, gFont);
   set(IDC_HISTORY, gFont);
   set(IDC_OPTIONS, gFont);
   set(IDC_ABOUT, gFont);
   set(IDC_TABS, gFont);
   set(IDC_CLEAR_REG, gFont);
+  set(IDC_SLIP, gFont);
   set(IDC_COPY_R, gFont);
   set(IDC_COPY_DEP, gFont);
   set(IDC_COPY_EOD, gFont);
@@ -671,7 +716,7 @@ void Relayout(HWND h) {
 
   const int pad = (std::max)(8, W / 140);
   const int btnH = (std::max)(22, (std::min)(30, H / 26));
-  const bool twoLine = W < 1400;
+  const bool twoLine = W < 1520;
   const int headerH = twoLine ? (btnH * 2 + 18) : (btnH + 16);
   gHeaderH = headerH;
   const int statusH = (std::max)(20, H / 34);
@@ -714,6 +759,8 @@ void Relayout(HWND h) {
   Place(&dwp, h, IDC_SAMPLE, bx, by, 100, btnH);
   bx += 108;
   Place(&dwp, h, IDC_CLEAR, bx, by, 90, btnH);
+  bx += 96;
+  Place(&dwp, h, IDC_UNDO, bx, by, 92, btnH);
   bx += 98;
   Place(&dwp, h, IDC_HISTORY, bx, by, 80, btnH);
   bx += 88;
@@ -721,7 +768,8 @@ void Relayout(HWND h) {
   bx += 88;
   Place(&dwp, h, IDC_ABOUT, bx, by, 72, btnH);
 
-  Place(&dwp, h, IDC_TABS, pad, yTab, leftW - 160, tabH);
+  Place(&dwp, h, IDC_TABS, pad, yTab, leftW - 240, tabH);
+  Place(&dwp, h, IDC_SLIP, pad + leftW - 236, yTab, 76, tabH);
   Place(&dwp, h, IDC_CLEAR_REG, pad + leftW - 154, yTab, 64, tabH);
   Place(&dwp, h, IDC_COPY_R, pad + leftW - 86, yTab, 86, tabH);
 
@@ -783,6 +831,7 @@ void Relayout(HWND h) {
   SizeLvCols(GetDlgItem(h, IDC_LV_DEP), logParts, 10);
   SizeLvCols(GetDlgItem(h, IDC_LV_EOD), logParts, 10);
   SizeLvCols(GetDlgItem(h, IDC_LV_RST), logParts, 10);
+  EnableUndoBtn(h);
   InvalidateRect(h, nullptr, TRUE);
 }
 

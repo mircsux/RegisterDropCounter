@@ -428,6 +428,8 @@ const wchar_t kAboutBody[] =
     L"4. Tab, Enter, or the arrow keys move to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
     L"6. The Left total turns green when it equals the register base. Red means that drawer is still off base.\r\n"
+    L"7. Drop slip prints a one-page bag slip: date, register, drop by denom, total, bag number, and initials.\r\n"
+    L"8. Undo clear brings back the last drawer you cleared, without opening History.\r\n"
     L"\r\n"
     L"The drop\r\n"
     L"Drop is how many of each denomination to pull so the drawer resets to the base.\r\n"
@@ -440,12 +442,16 @@ const wchar_t kAboutBody[] =
     L"Deposit Tab is what you drop. EOD Drawer Count is the full drawer as counted. Drawer Reset Count is what stays after the drop.\r\n"
     L"\r\n"
     L"History\r\n"
-    L"Clear and Clear All save the sheet first. Open History to search by date, look at old register counts, or restore a snapshot.\r\n"
+    L"Clear and Clear All save the sheet first. Undo clear brings back the last one. Open History to search by date, look at old register counts, or restore a snapshot.\r\n"
     L"\r\n"
     L"Sample\r\n"
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.8.0  2026-09-15  Undo clear and drop slip\r\n"
+    L"- Undo clear brings back the last drawer you cleared, without opening History.\r\n"
+    L"- Drop slip prints a one-page bag slip: date, register, drop by denom, total, bag number, and initials.\r\n"
+    L"\r\n"
     L"v2.7.1  2026-09-13  Phone app start\r\n"
     L"- Phone layout opens again after the number pad was added.\r\n"
     L"\r\n"
@@ -893,6 +899,275 @@ void ShowOptions(HWND owner) {
   UpdateWindow(gOpt);
 }
 
+void EnableUndoBtn(HWND h);
+
+void UndoLastClear(HWND h) {
+  if (gHistory.empty()) {
+    Status(h, L"Nothing to undo. History is empty.");
+    return;
+  }
+  const rdc::HistoryEntry& e = gHistory[0];
+  if (e.kind == rdc::HistRegister && e.registerIndex >= 0 &&
+      e.registerIndex < rdc::kRegisterCount) {
+    gRegs[e.registerIndex] = e.registers[e.registerIndex];
+    gActive = e.registerIndex;
+    TabCtrl_SetCurSel(GetDlgItem(h, IDC_TABS), gActive);
+  } else {
+    gBase = e.base;
+    for (int i = 0; i < rdc::kRegisterCount; ++i) gRegs[i] = e.registers[i];
+    HWND combo = GetDlgItem(h, IDC_BASE);
+    for (int b = 0; b < 5; ++b)
+      if (rdc::kBaseOptions[b] == gBase) SendMessageW(combo, CB_SETCURSEL, b, 0);
+  }
+  LoadCountsIntoEdits(h);
+  SaveState();
+  EnableUndoBtn(h);
+  wchar_t msg[80];
+  if (e.kind == rdc::HistRegister)
+    swprintf(msg, 80, L"Brought back Register %d.", e.registerIndex + 1);
+  else
+    swprintf(msg, 80, L"Brought back all registers from Clear All.");
+  Status(h, msg);
+}
+
+std::wstring BuildSlipText(int reg, const wchar_t* bag, const wchar_t* initials) {
+  if (reg < 0 || reg >= rdc::kRegisterCount) reg = 0;
+  const rdc::RegisterResult p = rdc::ComputeRegister(gRegs[reg], gBase);
+  std::wstring s;
+  s += L"REGISTER DROP SLIP\r\n";
+  s += L"Date: ";
+  s += rdc::FormatSheetDate();
+  s += L"\r\n";
+  wchar_t line[160];
+  swprintf(line, 160, L"Register: R%d\r\nRegister base: %s\r\n", reg + 1,
+           rdc::Money(gBase * 100).c_str());
+  s += line;
+  s += L"Bag / seal #: ";
+  s += (bag && bag[0]) ? bag : L"________";
+  s += L"\r\nInitials: ";
+  s += (initials && initials[0]) ? initials : L"________";
+  s += L"\r\n\r\nDenom                  Qty      Amount\r\n";
+  bool any = false;
+  for (int d = 0; d < rdc::DenomCount; ++d) {
+    if (p.drop.n[d] <= 0) continue;
+    any = true;
+    swprintf(line, 160, L"%-18s  %5d  %10s\r\n", rdc::kSlipName[d], p.drop.n[d],
+             rdc::Money(p.drop.n[d] * rdc::kCents[d]).c_str());
+    s += line;
+  }
+  if (!any) s += L"(nothing to drop)\r\n";
+  s += L"\r\n";
+  swprintf(line, 160, L"Drop total:      %s\r\nLeft in drawer:  %s\r\nDrawer counted:  %s\r\n",
+           rdc::Money(p.dropCents).c_str(), rdc::Money(p.leftCents).c_str(),
+           rdc::Money(p.amountCents).c_str());
+  s += line;
+  if (!p.hasCount)
+    s += L"Balanced: Empty\r\n";
+  else if (p.balanced)
+    s += L"Balanced: Yes\r\n";
+  else
+    s += L"Balanced: No - off base\r\n";
+  return s;
+}
+
+void PrintSlipText(HWND owner, const std::wstring& body) {
+  PRINTDLGW pd{};
+  pd.lStructSize = sizeof(pd);
+  pd.hwndOwner = owner;
+  pd.Flags = PD_RETURNDC | PD_NOSELECTION | PD_NOPAGENUMS;
+  if (!PrintDlgW(&pd) || !pd.hDC) return;
+  DOCINFOW di{};
+  di.cbSize = sizeof(di);
+  di.lpszDocName = L"Register Drop Slip";
+  if (StartDocW(pd.hDC, &di) > 0) {
+    StartPage(pd.hDC);
+    RECT rc{72, 72, 0, 0};
+    rc.right = GetDeviceCaps(pd.hDC, HORZRES) - 72;
+    rc.bottom = GetDeviceCaps(pd.hDC, VERTRES) - 72;
+    HFONT font = CreateFontW(-MulDiv(11, GetDeviceCaps(pd.hDC, LOGPIXELSY), 72), 0, 0, 0,
+                             FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN,
+                             L"Consolas");
+    HGDIOBJ old = SelectObject(pd.hDC, font);
+    DrawTextW(pd.hDC, body.c_str(), -1, &rc, DT_LEFT | DT_TOP | DT_WORDBREAK);
+    SelectObject(pd.hDC, old);
+    DeleteObject(font);
+    EndPage(pd.hDC);
+    EndDoc(pd.hDC);
+  }
+  DeleteDC(pd.hDC);
+  if (pd.hDevMode) GlobalFree(pd.hDevMode);
+  if (pd.hDevNames) GlobalFree(pd.hDevNames);
+}
+
+constexpr wchar_t kSlipClass[] = L"RegisterDropCounterSlipWnd";
+constexpr int IDC_S_TITLE = 9401;
+constexpr int IDC_S_META = 9402;
+constexpr int IDC_S_BAGLBL = 9403;
+constexpr int IDC_S_BAG = 9404;
+constexpr int IDC_S_INITLBL = 9405;
+constexpr int IDC_S_INIT = 9406;
+constexpr int IDC_S_BODY = 9407;
+constexpr int IDC_S_PRINT = 9408;
+constexpr int IDC_S_COPY = 9409;
+constexpr int IDC_S_CLOSE = 9410;
+
+void RefreshSlipBody(HWND h) {
+  wchar_t bag[64]{};
+  wchar_t initials[32]{};
+  GetDlgItemTextW(h, IDC_S_BAG, bag, 64);
+  GetDlgItemTextW(h, IDC_S_INIT, initials, 32);
+  gSlipBag = bag;
+  gSlipInitials = initials;
+  SetDlgItemTextW(h, IDC_S_BODY, BuildSlipText(gSlipReg, bag, initials).c_str());
+}
+
+LRESULT CALLBACK SlipProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
+  switch (msg) {
+    case WM_CREATE: {
+      wchar_t title[40];
+      swprintf(title, 40, L"Drop slip  R%d", gSlipReg + 1);
+      MakeStatic(h, IDC_S_TITLE, title, 16, 10, 400, 24, SS_LEFT);
+      SendMessageW(GetDlgItem(h, IDC_S_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
+      MakeStatic(h, IDC_S_META, rdc::FormatSheetDate().c_str(), 16, 40, 500, 20, SS_LEFT);
+      MakeStatic(h, IDC_S_BAGLBL, L"Bag / seal #", 16, 72, 100, 22, SS_LEFT);
+      MakeEditText(h, IDC_S_BAG, 120, 68, 200, 28);
+      SetDlgItemTextW(h, IDC_S_BAG, gSlipBag.c_str());
+      MakeStatic(h, IDC_S_INITLBL, L"Initials", 340, 72, 70, 22, SS_LEFT);
+      MakeEditText(h, IDC_S_INIT, 414, 68, 120, 28);
+      SetDlgItemTextW(h, IDC_S_INIT, gSlipInitials.c_str());
+      HWND body = CreateWindowExW(
+          WS_EX_CLIENTEDGE, L"EDIT", L"",
+          WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | ES_MULTILINE | ES_READONLY |
+              ES_AUTOVSCROLL,
+          16, 108, 518, 260, h, (HMENU)(INT_PTR)IDC_S_BODY, gInst, nullptr);
+      SendMessageW(body, WM_SETFONT, (WPARAM)gMono, TRUE);
+      MakeBtn(h, IDC_S_PRINT, L"Print", 16, 380, 100, 28);
+      MakeBtn(h, IDC_S_COPY, L"Copy", 124, 380, 90, 28);
+      MakeBtn(h, IDC_S_CLOSE, L"Close", 444, 380, 90, 28);
+      RefreshSlipBody(h);
+      return 0;
+    }
+    case WM_ERASEBKGND: {
+      HDC dc = (HDC)w;
+      RECT rc;
+      GetClientRect(h, &rc);
+      RECT band{0, 0, rc.right, 44};
+      FillRect(dc, &band, Brush(kNavy));
+      RECT rest{0, 44, rc.right, rc.bottom};
+      FillRect(dc, &rest, Brush(kSheet));
+      return 1;
+    }
+    case WM_CTLCOLORSTATIC: {
+      HDC dc = (HDC)w;
+      int id = GetDlgCtrlID((HWND)l);
+      if (id == IDC_S_TITLE) {
+        SetBkColor(dc, kNavy);
+        SetTextColor(dc, RGB(255, 255, 255));
+        return (LRESULT)Brush(kNavy);
+      }
+      SetBkColor(dc, kSheet);
+      SetTextColor(dc, RGB(26, 36, 46));
+      return (LRESULT)Brush(kSheet);
+    }
+    case WM_CTLCOLOREDIT: {
+      HDC dc = (HDC)w;
+      SetBkColor(dc, RGB(255, 255, 255));
+      SetTextColor(dc, RGB(26, 36, 46));
+      return (LRESULT)GetStockObject(WHITE_BRUSH);
+    }
+    case WM_COMMAND: {
+      int id = LOWORD(w);
+      int code = HIWORD(w);
+      if (id == IDC_S_CLOSE) {
+        PersistSlipFields();
+        DestroyWindow(h);
+        return 0;
+      }
+      if (id == IDC_S_COPY) {
+        RefreshSlipBody(h);
+        CopyText(BuildSlipText(gSlipReg, gSlipBag.c_str(), gSlipInitials.c_str()));
+        return 0;
+      }
+      if (id == IDC_S_PRINT) {
+        RefreshSlipBody(h);
+        PersistSlipFields();
+        PrintSlipText(h, BuildSlipText(gSlipReg, gSlipBag.c_str(), gSlipInitials.c_str()));
+        return 0;
+      }
+      if (code == EN_CHANGE && (id == IDC_S_BAG || id == IDC_S_INIT)) {
+        RefreshSlipBody(h);
+        return 0;
+      }
+      break;
+    }
+    case WM_SIZE:
+      if (w != SIZE_MINIMIZED) {
+        RECT rc;
+        GetClientRect(h, &rc);
+        const int W = rc.right;
+        const int H = rc.bottom;
+        HDWP dwp = BeginDeferWindowPos(10);
+        if (dwp) {
+          Place(&dwp, h, IDC_S_TITLE, 16, 10, W - 32, 24);
+          Place(&dwp, h, IDC_S_META, 16, 40, W - 32, 20);
+          Place(&dwp, h, IDC_S_BAGLBL, 16, 72, 100, 22);
+          Place(&dwp, h, IDC_S_BAG, 120, 68, (std::max)(120, W / 2 - 140), 28);
+          Place(&dwp, h, IDC_S_INITLBL, W / 2 + 8, 72, 70, 22);
+          Place(&dwp, h, IDC_S_INIT, W / 2 + 82, 68, (std::max)(80, W / 2 - 100), 28);
+          Place(&dwp, h, IDC_S_BODY, 16, 108, W - 32, (std::max)(80, H - 160));
+          Place(&dwp, h, IDC_S_PRINT, 16, H - 44, 100, 28);
+          Place(&dwp, h, IDC_S_COPY, 124, H - 44, 90, 28);
+          Place(&dwp, h, IDC_S_CLOSE, W - 106, H - 44, 90, 28);
+          EndDeferWindowPos(dwp);
+        }
+      }
+      return 0;
+    case WM_CLOSE:
+      PersistSlipFields();
+      DestroyWindow(h);
+      return 0;
+    case WM_DESTROY:
+      gSlip = nullptr;
+      return 0;
+  }
+  return DefWindowProcW(h, msg, w, l);
+}
+
+void ShowSlip(HWND owner, int reg) {
+  gSlipReg = reg;
+  if (gSlip && IsWindow(gSlip)) {
+    wchar_t title[40];
+    swprintf(title, 40, L"Drop slip  R%d", gSlipReg + 1);
+    SetWindowTextW(gSlip, title);
+    SetDlgItemTextW(gSlip, IDC_S_TITLE, title);
+    RefreshSlipBody(gSlip);
+    ShowWindow(gSlip, SW_SHOW);
+    SetForegroundWindow(gSlip);
+    return;
+  }
+  static bool registered = false;
+  if (!registered) {
+    WNDCLASSEXW wc{sizeof(wc)};
+    wc.lpfnWndProc = SlipProc;
+    wc.hInstance = gInst;
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = Brush(kSheet);
+    wc.lpszClassName = kSlipClass;
+    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    RegisterClassExW(&wc);
+    registered = true;
+  }
+  RECT rc;
+  GetWindowRect(owner, &rc);
+  wchar_t title[40];
+  swprintf(title, 40, L"Drop slip  R%d", gSlipReg + 1);
+  gSlip = CreateWindowExW(WS_EX_APPWINDOW, kSlipClass, title, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+                          rc.left + 50, rc.top + 50, 560, 470, owner, nullptr, gInst, nullptr);
+  ShowWindow(gSlip, SW_SHOW);
+  UpdateWindow(gSlip);
+}
+
 void Layout(HWND h) {
   MakeStatic(h, IDC_TITLE, L"Register Drop Counter", 16, 12, 280, 24, SS_LEFT);
   SendMessageW(GetDlgItem(h, IDC_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
@@ -909,9 +1184,10 @@ void Layout(HWND h) {
   }
   MakeBtn(h, IDC_SAMPLE, L"Load sample", 630, 10, 100, 26);
   MakeBtn(h, IDC_CLEAR, L"Clear All", 738, 10, 90, 26);
-  MakeBtn(h, IDC_HISTORY, L"History", 836, 10, 80, 26);
-  MakeBtn(h, IDC_OPTIONS, L"Options", 924, 10, 80, 26);
-  MakeBtn(h, IDC_ABOUT, L"About", 1012, 10, 72, 26);
+  MakeBtn(h, IDC_UNDO, L"Undo clear", 836, 10, 92, 26);
+  MakeBtn(h, IDC_HISTORY, L"History", 936, 10, 80, 26);
+  MakeBtn(h, IDC_OPTIONS, L"Options", 1024, 10, 80, 26);
+  MakeBtn(h, IDC_ABOUT, L"About", 1112, 10, 72, 26);
   MakeStatic(h, IDC_TODAY, rdc::FormatSheetDate().c_str(), 1004, 14, 370, 20, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_TODAY), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
@@ -926,8 +1202,9 @@ void Layout(HWND h) {
     it.pszText = lab;
     TabCtrl_InsertItem(tabs, i, &it);
   }
-  MakeBtn(h, IDC_CLEAR_REG, L"Clear", 520, 48, 64, 26);
-  MakeBtn(h, IDC_COPY_R, L"Copy R1", 590, 48, 80, 26);
+  MakeBtn(h, IDC_SLIP, L"Drop slip", 520, 48, 76, 26);
+  MakeBtn(h, IDC_CLEAR_REG, L"Clear", 604, 48, 64, 26);
+  MakeBtn(h, IDC_COPY_R, L"Copy R1", 676, 48, 80, 26);
 
   const int x0 = 16, y0 = 92, rowH = 24;
   const wchar_t* hdrs[] = {L"", L"Count", L"Denom", L"Amount", L"Drop", L"Left"};
@@ -1027,6 +1304,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       Layout(h);
       rdc::LoadOptions(OptionsPath(), &gOptions);
       rdc::LoadHistory(HistoryPath(), &gHistory);
+      LoadSlipFields();
       if (gOptions.syncOneDrive) LoadHistoryFromCloud();
       if (!LoadState()) rdc::LoadSample(gRegs);
       {
@@ -1172,6 +1450,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           for (int i = 0; i < rdc::kRegisterCount; ++i) gRegs[i] = rdc::Counts{};
           LoadCountsIntoEdits(h);
           SaveState();
+          EnableUndoBtn(h);
           if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
         }
       } else if (id == IDC_CLEAR_REG) {
@@ -1180,7 +1459,13 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         gRegs[gActive] = rdc::Counts{};
         LoadCountsIntoEdits(h);
         SaveState();
+        EnableUndoBtn(h);
         if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+      } else if (id == IDC_UNDO) {
+        UndoLastClear(h);
+      } else if (id == IDC_SLIP) {
+        ReadCountsFromEdits(h);
+        ShowSlip(h, gActive);
       } else if (id == IDC_HISTORY) {
         ShowHistory(h);
       } else if (id == IDC_OPTIONS) {

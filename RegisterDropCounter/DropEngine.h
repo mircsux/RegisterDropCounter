@@ -43,6 +43,12 @@ inline constexpr const wchar_t* kLabels[DenomCount] = {
 inline constexpr const wchar_t* kRollLetter[DenomCount] = {
     L"", L"", L"", L"", L"P", L"N", L"D", L"Q", L"", L"", L"", L"", L"", L"", L""};
 
+inline constexpr const wchar_t* kSlipName[DenomCount] = {
+    L"Pennies",        L"Nickels",        L"Dimes",          L"Quarters",
+    L"P roll (0.50)",  L"N roll (2.00)",  L"D roll (5.00)",  L"Q roll (10.00)",
+    L"$1",             L"$2",             L"$5",             L"$10",
+    L"$20",            L"$50",            L"$100"};
+
 inline constexpr int kDropOrder[DenomCount] = {
     Hundred, Fifty, Twenty, Ten, Five, Two, One, Quarter, Dime,
     Nickel,  QRoll, DRoll,  NRoll, PRoll, Penny};
