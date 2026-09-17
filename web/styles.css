@@ -1,0 +1,97 @@
+:root {
+  --bg: #f4f1ea;
+  --paper: #fffdf8;
+  --ink: #1c1914;
+  --muted: #6b6458;
+  --line: #d9d0c0;
+  --yellow: #ffe56a;
+  --green: #1f7a3a;
+  --green-bg: #d8f3e0;
+  --red: #b42318;
+  --red-bg: #fde8e6;
+  --accent: #1f4f8a;
+  --tab: #ece6d8;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+.dark {
+  --bg: #161410;
+  --paper: #221e18;
+  --ink: #f3eee4;
+  --muted: #b4ab9b;
+  --line: #3a342a;
+  --yellow: #c9a61a;
+  --green: #6ee7a0;
+  --green-bg: #163522;
+  --red: #ff8a80;
+  --red-bg: #3a1c1a;
+  --accent: #8cb4f0;
+  --tab: #2c271f;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { min-height: 100vh; }
+header {
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper);
+}
+h1 { font-size: 1.15rem; margin: 0; }
+.sub { color: var(--muted); font-size: .85rem; }
+.grow { flex: 1; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input[type=text] {
+  font: inherit; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+.pill { font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--tab); }
+.pill.ok { background: var(--green-bg); color: var(--green); }
+.pill.bad { background: var(--red-bg); color: var(--red); }
+#tabs { display: flex; gap: 4px; padding: 10px 16px 0; overflow-x: auto; }
+.tab {
+  min-width: 52px; padding: 8px 10px; border-radius: 10px 10px 0 0;
+  background: var(--tab); border: 1px solid var(--line); border-bottom: 0;
+}
+.tab.on { background: var(--paper); font-weight: 700; }
+.tab.ok { box-shadow: inset 0 -3px 0 var(--green); }
+.tab.off { box-shadow: inset 0 -3px 0 var(--red); }
+main { display: grid; grid-template-columns: 1fr 280px; gap: 16px; padding: 0 16px 24px; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 0 12px 12px 12px; padding: 12px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0 12px; }
+@media (max-width: 640px) { .stats { grid-template-columns: 1fr 1fr; } }
+.stat { border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.stat-lab { font-size: .75rem; color: var(--muted); }
+.stat-val { font-size: 1.05rem; font-variant-numeric: tabular-nums; font-weight: 650; }
+.good { color: var(--green); background: var(--green-bg); }
+.bad { color: var(--red); background: var(--red-bg); }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+th { font-size: .75rem; color: var(--muted); font-weight: 600; }
+td.lab { text-align: left; font-variant-numeric: tabular-nums; }
+input.cnt {
+  width: 100%; max-width: 90px; text-align: right; background: var(--yellow);
+  border: 1px solid #e0c43a; border-radius: 6px; font: inherit; padding: 4px 6px;
+}
+.num { font-variant-numeric: tabular-nums; }
+.drop { font-weight: 650; }
+tr.roll td.lab { color: var(--muted); }
+.roll { display: inline-block; min-width: 1.1em; font-weight: 700; color: var(--accent); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+aside h2 { font-size: .95rem; margin: 0 0 8px; }
+.muted { color: var(--muted); font-size: .85rem; }
+.hist-row {
+  display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  border-top: 1px solid var(--line); padding: 8px 0;
+}
+#toast {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #1c1914; color: #fff; padding: 8px 14px; border-radius: 999px;
+  opacity: 0; pointer-events: none; transition: .2s;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); max-width: 36rem; }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+label.field { display: flex; flex-direction: column; gap: 2px; font-size: .75rem; color: var(--muted); }
+label.field input, label.field select { color: var(--ink); }
