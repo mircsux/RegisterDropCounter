@@ -1,0 +1,9 @@
+Register Drop Counter  2.15.0  (2026-09-17)  -  Web (any browser)
+
+1. Open web/index.html in Chrome, Edge, Safari, or Firefox.
+2. Optional: add to the phone home screen from the browser menu.
+
+Same drop math as Windows, Android, iPhone, and C23: yellow counts, $2 bills,
+named tills, undo, drop slip, history, cash-log copy.
+
+Counts stay in this browser. Nothing is uploaded.
