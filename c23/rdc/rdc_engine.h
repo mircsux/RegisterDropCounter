@@ -28,6 +28,9 @@ enum rdc_denom {
 
 enum { RDC_REGISTER_COUNT = 10 };
 enum { RDC_COUNT_MAX = 99999 };
+enum { RDC_RECEIPT_COLS = 42 };
+enum { RDC_RECEIPT_PAPER_MM = 80 };
+enum { RDC_RECEIPT_PRINT_MM = 72 };
 
 typedef struct rdc_counts {
   int n[RDC_DENOM_COUNT];

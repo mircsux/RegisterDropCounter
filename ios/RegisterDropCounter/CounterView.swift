@@ -208,7 +208,7 @@ struct RegisterCardView: View {
             } label: {
                 Text(r.counts[d] == 0 ? " " : "\(r.counts[d])")
                     .font(.body.monospaced())
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(Theme.cellInk)
                     .frame(maxWidth: .infinity, minHeight: 40)
                     .background(Theme.input)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -223,6 +223,7 @@ struct RegisterCardView: View {
                 .frame(width: 52, alignment: .trailing)
             Text(moneyOrBlank(r.counts[d] * d.cents))
                 .font(.caption.monospaced())
+                .foregroundStyle(Theme.cellInk)
                 .frame(width: 72, alignment: .trailing)
                 .padding(.vertical, 6)
                 .background(Theme.computed)

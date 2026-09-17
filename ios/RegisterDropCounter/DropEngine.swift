@@ -133,6 +133,84 @@ enum DropEngine {
             String(format: "%.2f", Double(coin) / 100.0),
         ].joined(separator: "\t")
     }
+
+    static let receiptCols = 42
+
+    static func dropSlipText(
+        till: String,
+        baseDollars: Int,
+        result: RegisterResult,
+        bag: String,
+        initials: String,
+        now: Date = Date()
+    ) -> String {
+        func clip(_ s: String, _ n: Int) -> String {
+            if s.count <= n { return s }
+            return String(s.prefix(n))
+        }
+        func padR(_ s: String, _ n: Int) -> String {
+            let t = clip(s, n)
+            return t + String(repeating: " ", count: n - t.count)
+        }
+        func padL(_ s: String, _ n: Int) -> String {
+            let t = clip(s, n)
+            return String(repeating: " ", count: n - t.count) + t
+        }
+        func center(_ s: String) -> String {
+            let t = clip(s, receiptCols)
+            let left = (receiptCols - t.count) / 2
+            return String(repeating: " ", count: left) + t
+        }
+        func rule() -> String { String(repeating: "-", count: receiptCols) }
+        func kv(_ label: String, _ value: String) -> String {
+            let v = value.isEmpty ? "________" : value
+            let line = label + v
+            if line.count <= receiptCols { return line }
+            return label + "\n" + clip(v, receiptCols)
+        }
+        func itemRow(_ name: String, _ count: Int, _ cents: Int) -> String {
+            padR(name, 22) + padL("\(count)", 6) + " " + padL(money(cents), 13)
+        }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US")
+        df.dateFormat = "EEE, MMM d, yyyy"
+        let tf = DateFormatter()
+        tf.locale = Locale(identifier: "en_US")
+        tf.dateFormat = "h:mm a"
+        let bagV = bag.trimmingCharacters(in: .whitespacesAndNewlines)
+        let initV = initials.trimmingCharacters(in: .whitespacesAndNewlines)
+        let balanced: String
+        if !result.hasCount { balanced = "Empty" }
+        else if result.balanced { balanced = "Yes" }
+        else { balanced = "No - off base" }
+        var rows: [String] = []
+        for d in Denom.allCases {
+            let n = result.drop[d]
+            if n > 0 { rows.append(itemRow(d.slipName, n, n * d.cents)) }
+        }
+        if rows.isEmpty { rows = ["(nothing to drop)"] }
+        var out: [String] = [
+            center("DROP SLIP"),
+            rule(),
+            df.string(from: now),
+            tf.string(from: now),
+            kv("Till: ", till),
+            kv("Base: ", money(baseDollars * 100)),
+            kv("Bag #: ", bagV),
+            kv("Initials: ", initV),
+            rule(),
+            padR("ITEM", 22) + padL("QTY", 6) + " " + padL("AMOUNT", 13),
+        ]
+        out.append(contentsOf: rows)
+        out.append(rule())
+        out.append(padR("DROP TOTAL", 29) + padL(money(result.dropCents), 13))
+        out.append(padR("LEFT IN DRAWER", 29) + padL(money(result.leftCents), 13))
+        out.append(padR("COUNTED", 29) + padL(money(result.amountCents), 13))
+        out.append("Balanced: \(balanced)")
+        out.append(rule())
+        out.append(center("Star 80mm receipt"))
+        return out.joined(separator: "\n")
+    }
 }
 
 struct HistoryKind: Codable, Equatable {

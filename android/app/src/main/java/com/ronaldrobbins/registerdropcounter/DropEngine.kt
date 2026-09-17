@@ -1,6 +1,8 @@
 package com.ronaldrobbins.registerdropcounter
 
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
@@ -133,6 +135,71 @@ object DropEngine {
             c[Denom.Twenty], c[Denom.Fifty], c[Denom.Hundred],
             String.format(Locale.US, "%.2f", coin / 100.0),
         ).joinToString("\t")
+    }
+
+    const val RECEIPT_COLS = 42
+
+    fun dropSlipText(
+        till: String,
+        baseDollars: Int,
+        r: RegisterResult,
+        bag: String,
+        initials: String,
+        now: Date = Date(),
+    ): String {
+        fun clip(s: String, n: Int) = if (s.length <= n) s else s.substring(0, n)
+        fun padR(s: String, n: Int): String {
+            val t = clip(s, n)
+            return t + " ".repeat(n - t.length)
+        }
+        fun padL(s: String, n: Int): String {
+            val t = clip(s, n)
+            return " ".repeat(n - t.length) + t
+        }
+        fun center(s: String): String {
+            val t = clip(s, RECEIPT_COLS)
+            val left = (RECEIPT_COLS - t.length) / 2
+            return " ".repeat(left) + t
+        }
+        fun rule() = "-".repeat(RECEIPT_COLS)
+        fun kv(label: String, value: String): String {
+            val v = value.ifBlank { "________" }
+            val line = label + v
+            return if (line.length <= RECEIPT_COLS) line else label + "\n" + clip(v, RECEIPT_COLS)
+        }
+        fun itemRow(name: String, count: Int, cents: Int) =
+            padR(name, 22) + padL(count.toString(), 6) + " " + padL(money(cents), 13)
+        val df = SimpleDateFormat("EEE, MMM d, yyyy", Locale.US)
+        val tf = SimpleDateFormat("h:mm a", Locale.US)
+        val balanced = when {
+            !r.hasCount -> "Empty"
+            r.balanced -> "Yes"
+            else -> "No - off base"
+        }
+        val rows = Denom.entries.mapNotNull { d ->
+            val n = r.drop[d]
+            if (n > 0) itemRow(d.slipName, n, n * d.cents) else null
+        }.ifEmpty { listOf("(nothing to drop)") }
+        return buildList {
+            add(center("DROP SLIP"))
+            add(rule())
+            add(df.format(now))
+            add(tf.format(now))
+            add(kv("Till: ", till))
+            add(kv("Base: ", money(baseDollars * 100)))
+            add(kv("Bag #: ", bag.trim()))
+            add(kv("Initials: ", initials.trim()))
+            add(rule())
+            add(padR("ITEM", 22) + padL("QTY", 6) + " " + padL("AMOUNT", 13))
+            addAll(rows)
+            add(rule())
+            add(padR("DROP TOTAL", 29) + padL(money(r.dropCents), 13))
+            add(padR("LEFT IN DRAWER", 29) + padL(money(r.leftCents), 13))
+            add(padR("COUNTED", 29) + padL(money(r.amountCents), 13))
+            add("Balanced: $balanced")
+            add(rule())
+            add(center("Star 80mm receipt"))
+        }.joinToString("\n")
     }
 }
 

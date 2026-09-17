@@ -56,7 +56,7 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Register Drop Counter", color = RdcColor.onNavy, fontWeight = FontWeight.SemiBold)
-                    Text("v2.12.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    Text("v2.14.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
                 var baseOpen by remember { mutableStateOf(false) }
                 Box {
@@ -107,7 +107,11 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
                     rr.hasCount && !rr.balanced -> RdcColor.bad
                     else -> RdcColor.sheet
                 }
-                val fg = if (model.active == i) RdcColor.onNavy else RdcColor.ink
+                val fg = when {
+                    model.active == i -> RdcColor.onNavy
+                    rr.hasCount -> RdcColor.cellInk
+                    else -> RdcColor.ink
+                }
                 Text(
                     model.names[i],
                     color = fg,
@@ -277,12 +281,12 @@ private fun RegisterCard(
                     .padding(horizontal = 8.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(d.rollLetter ?: "", fontFamily = FontFamily.Monospace, fontSize = 12.sp, modifier = Modifier.width(28.dp))
+                Text(d.rollLetter ?: "", color = RdcColor.ink, fontFamily = FontFamily.Monospace, fontSize = 12.sp, modifier = Modifier.width(28.dp))
                 val qty = result.counts[d]
                 Text(
                     if (qty == 0) " " else "$qty",
                     fontFamily = FontFamily.Monospace,
-                    color = RdcColor.ink,
+                    color = RdcColor.cellInk,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .weight(1f)
@@ -293,11 +297,12 @@ private fun RegisterCard(
                         .clickable { onFocus(d) }
                         .padding(vertical = 8.dp),
                 )
-                Text(d.label, fontFamily = FontFamily.Monospace, fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.width(52.dp))
+                Text(d.label, color = RdcColor.ink, fontFamily = FontFamily.Monospace, fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.width(52.dp))
                 Text(
                     if (qty == 0) "" else DropEngine.money(qty * d.cents),
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
+                    color = RdcColor.cellInk,
                     textAlign = TextAlign.End,
                     modifier = Modifier
                         .width(72.dp)

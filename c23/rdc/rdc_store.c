@@ -266,34 +266,156 @@ int rdc_load_slip_path(rdc_sheet *s, const char *path) {
   return 0;
 }
 
+static void rdc_clip(char *dst, int n, const char *s) {
+  int i = 0;
+  if (!s) s = "";
+  for (; s[i] && i < n; ++i) dst[i] = s[i];
+  dst[i] = '\0';
+}
+
+static void rdc_pad_r(char *dst, int n, const char *s) {
+  int i = 0;
+  if (!s) s = "";
+  for (; s[i] && i < n; ++i) dst[i] = s[i];
+  for (; i < n; ++i) dst[i] = ' ';
+  dst[n] = '\0';
+}
+
+static void rdc_pad_l(char *dst, int n, const char *s) {
+  size_t len = s ? strlen(s) : 0;
+  if (len > (size_t)n) {
+    memcpy(dst, s, (size_t)n);
+    dst[n] = '\0';
+    return;
+  }
+  int pad = n - (int)len;
+  memset(dst, ' ', (size_t)pad);
+  if (s && len) memcpy(dst + pad, s, len);
+  dst[n] = '\0';
+}
+
+static void rdc_center(char *dst, int n, const char *s) {
+  size_t len = s ? strlen(s) : 0;
+  if (len > (size_t)n) len = (size_t)n;
+  int left = (n - (int)len) / 2;
+  memset(dst, ' ', (size_t)n);
+  if (s && len) memcpy(dst + left, s, len);
+  dst[n] = '\0';
+}
+
+static int rdc_slip_add(char *buf, size_t n, int *used, const char *line) {
+  if (!buf || !used || (size_t)*used >= n) return -1;
+  int w = snprintf(buf + *used, n - (size_t)*used, "%s\n", line ? line : "");
+  if (w < 0 || (size_t)w >= n - (size_t)*used) return -1;
+  *used += w;
+  return 0;
+}
+
+static void rdc_item_row(char *row, const char *name_s, const char *qty_s, const char *amt_s) {
+  char name[23], qty[7], amt[14];
+  rdc_pad_r(name, 22, name_s);
+  rdc_pad_l(qty, 6, qty_s);
+  rdc_pad_l(amt, 13, amt_s);
+  memcpy(row, name, 22);
+  memcpy(row + 22, qty, 6);
+  row[28] = ' ';
+  memcpy(row + 29, amt, 13);
+  row[42] = '\0';
+}
+
+static void rdc_total_row(char *row, const char *label, const char *amt_s) {
+  char name[30], amt[14];
+  rdc_pad_r(name, 29, label);
+  rdc_pad_l(amt, 13, amt_s);
+  memcpy(row, name, 29);
+  memcpy(row + 29, amt, 13);
+  row[42] = '\0';
+}
+
+static int rdc_slip_kv(char *buf, size_t n, int *used, const char *label, const char *value) {
+  const char *v = (value && value[0]) ? value : "________";
+  char line[96];
+  snprintf(line, sizeof line, "%s%s", label, v);
+  if ((int)strlen(line) <= RDC_RECEIPT_COLS) return rdc_slip_add(buf, n, used, line);
+  if (rdc_slip_add(buf, n, used, label) != 0) return -1;
+  char clipped[RDC_RECEIPT_COLS + 1];
+  rdc_clip(clipped, RDC_RECEIPT_COLS, v);
+  return rdc_slip_add(buf, n, used, clipped);
+}
+
 int rdc_drop_slip_text(const rdc_sheet *s, int index, char *buf, size_t n) {
   if (!s || !buf || n == 0 || index < 0 || index >= RDC_REGISTER_COUNT) return -1;
   rdc_result r = rdc_compute(&s->registers[index], s->base);
-  char date[80], amount[32], drop[32], left[32], base[32];
-  rdc_format_sheet_date(time(RDC_NULL), date, sizeof date);
+  char date[80], timebuf[40], amount[32], drop[32], left[32], base[32];
+  time_t now = time(RDC_NULL);
+  rdc_format_sheet_date(now, date, sizeof date);
+  {
+    struct tm tm;
+#if defined(_WIN32)
+    localtime_s(&tm, &now);
+#else
+    {
+      struct tm *p = localtime(&now);
+      if (p) tm = *p;
+      else memset(&tm, 0, sizeof tm);
+    }
+#endif
+    strftime(timebuf, sizeof timebuf, "%I:%M %p", &tm);
+  }
   rdc_money(r.amount_cents, amount, sizeof amount);
   rdc_money(r.drop_cents, drop, sizeof drop);
   rdc_money(r.left_cents, left, sizeof left);
   rdc_money(s->base * 100, base, sizeof base);
-  int used = snprintf(buf, n,
-                      "REGISTER DROP SLIP\nDate: %s\nRegister: %s\nRegister base: %s\n"
-                      "Bag / seal #: %s\nInitials: %s\n\nDenom                  Qty      Amount\n",
-                      date, s->names[index], base, s->bag[0] ? s->bag : "________",
-                      s->initials[0] ? s->initials : "________");
-  if (used < 0 || (size_t)used >= n) return -1;
+
+  int used = 0;
+  char row[RDC_RECEIPT_COLS + 1];
+  char rule[RDC_RECEIPT_COLS + 1];
+  memset(rule, '-', RDC_RECEIPT_COLS);
+  rule[RDC_RECEIPT_COLS] = '\0';
+  rdc_center(row, RDC_RECEIPT_COLS, "DROP SLIP");
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  if (rdc_slip_add(buf, n, &used, rule) != 0) return -1;
+  rdc_clip(row, RDC_RECEIPT_COLS, date);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  rdc_clip(row, RDC_RECEIPT_COLS, timebuf);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  if (rdc_slip_kv(buf, n, &used, "Till: ", s->names[index]) != 0) return -1;
+  if (rdc_slip_kv(buf, n, &used, "Base: ", base) != 0) return -1;
+  if (rdc_slip_kv(buf, n, &used, "Bag #: ", s->bag[0] ? s->bag : "________") != 0) return -1;
+  if (rdc_slip_kv(buf, n, &used, "Initials: ", s->initials[0] ? s->initials : "________") != 0)
+    return -1;
+  if (rdc_slip_add(buf, n, &used, rule) != 0) return -1;
+
+  rdc_item_row(row, "ITEM", "QTY", "AMOUNT");
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+
+  int any = 0;
   for (int d = 0; d < RDC_DENOM_COUNT; ++d) {
     if (r.drop.n[d] <= 0) continue;
-    char amt[32];
-    rdc_money(r.drop.n[d] * rdc_cents((enum rdc_denom)d), amt, sizeof amt);
-    int w = snprintf(buf + used, n - (size_t)used, "%-22s %4d  %10s\n", rdc_slip_name((enum rdc_denom)d),
-                     r.drop.n[d], amt);
-    if (w < 0 || (size_t)w >= n - (size_t)used) return -1;
-    used += w;
+    any = 1;
+    char money[32], count[16];
+    rdc_money(r.drop.n[d] * rdc_cents((enum rdc_denom)d), money, sizeof money);
+    snprintf(count, sizeof count, "%d", r.drop.n[d]);
+    rdc_item_row(row, rdc_slip_name((enum rdc_denom)d), count, money);
+    if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
   }
-  const char *bal = !r.has_count ? "Empty" : r.balanced ? "Yes - left equals base" : "No - off base";
-  int w = snprintf(buf + used, n - (size_t)used,
-                   "\nDrop total:  %s\nLeft in drawer:  %s\nBalanced:  %s\nDrawer counted:  %s\n",
-                   drop, left, bal, amount);
-  if (w < 0) return -1;
-  return used + w;
+  if (!any && rdc_slip_add(buf, n, &used, "(nothing to drop)") != 0) return -1;
+  if (rdc_slip_add(buf, n, &used, rule) != 0) return -1;
+
+  rdc_total_row(row, "DROP TOTAL", drop);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  rdc_total_row(row, "LEFT IN DRAWER", left);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  rdc_total_row(row, "COUNTED", amount);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+
+  const char *bal = !r.has_count ? "Empty" : r.balanced ? "Yes" : "No - off base";
+  char bal_line[64];
+  snprintf(bal_line, sizeof bal_line, "Balanced: %s", bal);
+  rdc_clip(row, RDC_RECEIPT_COLS, bal_line);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  if (rdc_slip_add(buf, n, &used, rule) != 0) return -1;
+  rdc_center(row, RDC_RECEIPT_COLS, "Star 80mm receipt");
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  return used;
 }

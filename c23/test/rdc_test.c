@@ -99,6 +99,29 @@ int main(void) {
   rdc_one_row_tsv(&dep, tsv, sizeof tsv);
   expect_int("tsv has tabs", strchr(tsv, '\t') ? 1 : 0, 1);
 
+  rdc_sheet slip_s;
+  rdc_sheet_init(&slip_s);
+  slip_s.registers[0].n[RDC_TWENTY] = 25;
+  snprintf(slip_s.bag, sizeof slip_s.bag, "SEAL-998877");
+  snprintf(slip_s.initials, sizeof slip_s.initials, "RRJR");
+  rdc_set_name(&slip_s, 0, "Drive-thru lane");
+  char slip[4096];
+  expect_int("slip ok", rdc_drop_slip_text(&slip_s, 0, slip, sizeof slip) >= 0 ? 1 : 0, 1);
+  expect_int("slip title", strstr(slip, "DROP SLIP") ? 1 : 0, 1);
+  expect_int("slip till", strstr(slip, "Till: Drive-thru lane") ? 1 : 0, 1);
+  expect_int("slip total", strstr(slip, "DROP TOTAL") ? 1 : 0, 1);
+  {
+    int maxw = 0;
+    for (char *p = slip; *p;) {
+      char *nl = strchr(p, '\n');
+      int w = nl ? (int)(nl - p) : (int)strlen(p);
+      if (w > maxw) maxw = w;
+      p = nl ? nl + 1 : p + strlen(p);
+    }
+    expect_int("slip width <= 42", maxw <= RDC_RECEIPT_COLS ? 1 : 0, 1);
+    expect_int("receipt cols", RDC_RECEIPT_COLS, 42);
+  }
+
   if (g_fail) {
     fputs("rdc_test failed\n", stderr);
     return 1;

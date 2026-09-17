@@ -10,6 +10,12 @@
 #include <commdlg.h>
 #include <shlobj.h>
 #include <objbase.h>
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 #include <algorithm>
 #include <cstring>
 #include <ctime>
@@ -91,6 +97,8 @@ HINSTANCE gInst = nullptr;
 HWND gMain = nullptr;
 HWND gHist = nullptr;
 HWND gSlip = nullptr;
+HWND gOpt = nullptr;
+HWND gAbout = nullptr;
 HFONT gFont = nullptr;
 HFONT gFontBold = nullptr;
 HFONT gMono = nullptr;
@@ -106,6 +114,7 @@ std::vector<rdc::HistoryEntry> gHistory;
 rdc::Options gOptions;
 std::wstring gHistFilter;
 int gHistSel = -1;
+int gHistDetailReg = 0;
 std::wstring gSlipBag;
 std::wstring gSlipInitials;
 int gSlipReg = 0;
@@ -120,27 +129,76 @@ const COLORREF kComputed = RGB(248, 228, 212);
 const COLORREF kOk = RGB(198, 239, 206);
 const COLORREF kBad = RGB(255, 199, 206);
 const COLORREF kDropHit = RGB(214, 234, 223);
-const COLORREF kSheet = RGB(238, 241, 244);
+const COLORREF kCellInk = RGB(26, 36, 46);
+COLORREF kSheet = RGB(238, 241, 244);
+COLORREF kPaper = RGB(255, 255, 255);
+COLORREF kInk = RGB(26, 36, 46);
+COLORREF kNavyFg = RGB(31, 78, 121);
+COLORREF kMuted = RGB(92, 107, 122);
+
+HBRUSH gBrNavy = nullptr;
+HBRUSH gBrMid = nullptr;
+HBRUSH gBrIn = nullptr;
+HBRUSH gBrPeach = nullptr;
+HBRUSH gBrOk = nullptr;
+HBRUSH gBrBad = nullptr;
+HBRUSH gBrHit = nullptr;
+HBRUSH gBrSheet = nullptr;
+HBRUSH gBrPaper = nullptr;
+
+void RebuildBrushes() {
+  auto put = [](HBRUSH* slot, COLORREF c) {
+    if (*slot) DeleteObject(*slot);
+    *slot = CreateSolidBrush(c);
+  };
+  put(&gBrNavy, kNavy);
+  put(&gBrMid, kNavyMid);
+  put(&gBrIn, kInput);
+  put(&gBrPeach, kComputed);
+  put(&gBrOk, kOk);
+  put(&gBrBad, kBad);
+  put(&gBrHit, kDropHit);
+  put(&gBrSheet, kSheet);
+  put(&gBrPaper, kPaper);
+}
+
+void ApplyTheme() {
+  if (gOptions.darkMode) {
+    kSheet = RGB(18, 24, 32);
+    kPaper = RGB(28, 36, 48);
+    kInk = RGB(230, 238, 246);
+    kNavyFg = RGB(156, 199, 236);
+    kMuted = RGB(154, 171, 186);
+  } else {
+    kSheet = RGB(238, 241, 244);
+    kPaper = RGB(255, 255, 255);
+    kInk = RGB(26, 36, 46);
+    kNavyFg = RGB(31, 78, 121);
+    kMuted = RGB(92, 107, 122);
+  }
+  RebuildBrushes();
+  auto paint = [](HWND w) {
+    if (w && IsWindow(w)) InvalidateRect(w, nullptr, TRUE);
+  };
+  paint(gMain);
+  paint(gHist);
+  paint(gSlip);
+  paint(gOpt);
+  paint(gAbout);
+}
 
 HBRUSH Brush(COLORREF c) {
-  static HBRUSH navy = CreateSolidBrush(kNavy);
-  static HBRUSH mid = CreateSolidBrush(kNavyMid);
-  static HBRUSH in = CreateSolidBrush(kInput);
-  static HBRUSH peach = CreateSolidBrush(kComputed);
-  static HBRUSH ok = CreateSolidBrush(kOk);
-  static HBRUSH bad = CreateSolidBrush(kBad);
-  static HBRUSH hit = CreateSolidBrush(kDropHit);
-  static HBRUSH sheet = CreateSolidBrush(kSheet);
-  static HBRUSH white = CreateSolidBrush(RGB(255, 255, 255));
-  if (c == kNavy) return navy;
-  if (c == kNavyMid) return mid;
-  if (c == kInput) return in;
-  if (c == kComputed) return peach;
-  if (c == kOk) return ok;
-  if (c == kBad) return bad;
-  if (c == kDropHit) return hit;
-  if (c == kSheet) return sheet;
-  return white;
+  if (!gBrSheet) RebuildBrushes();
+  if (c == kNavy) return gBrNavy;
+  if (c == kNavyMid) return gBrMid;
+  if (c == kInput) return gBrIn;
+  if (c == kComputed) return gBrPeach;
+  if (c == kOk) return gBrOk;
+  if (c == kBad) return gBrBad;
+  if (c == kDropHit) return gBrHit;
+  if (c == kSheet) return gBrSheet;
+  if (c == kPaper) return gBrPaper;
+  return gBrPaper;
 }
 
 std::wstring StatePath() {

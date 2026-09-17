@@ -7,6 +7,15 @@ struct OptionsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Appearance") {
+                    Toggle("Dark mode", isOn: Binding(
+                        get: { model.darkMode },
+                        set: { model.setDarkMode($0) }
+                    ))
+                    Text("Navy headers and yellow count cells stay. The sheet goes dark.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.muted)
+                }
                 Section("Register base") {
                     Picker("Base", selection: $model.base) {
                         ForEach(DropEngine.baseOptions, id: \.self) { b in
@@ -61,7 +70,7 @@ struct CashLogView: View {
                 Spacer()
                 Text("Copy")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.navy)
+                    .foregroundStyle(Theme.navyFg)
             }
         }
     }

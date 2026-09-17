@@ -9,6 +9,7 @@ struct RegisterDropCounterApp: App {
             ContentView()
                 .environmentObject(model)
                 .tint(Theme.navy)
+                .preferredColorScheme(model.darkMode ? .dark : .light)
         }
     }
 }

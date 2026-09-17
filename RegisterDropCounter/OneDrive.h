@@ -15,6 +15,7 @@ namespace rdc {
 
 struct Options {
   bool syncOneDrive = false;
+  bool darkMode = false;
   std::wstring folder;  // empty = auto-detect OneDrive\RegisterDropCounter
 };
 
@@ -93,13 +94,15 @@ inline bool SaveOptions(const std::wstring& path, const Options& o) {
 #else
   std::wofstream out(path.c_str());
   if (!out) return false;
-  out << L"RDCO1\n" << (o.syncOneDrive ? 1 : 0) << L"\n" << o.folder << L"\n";
+  out << L"RDCO1\n" << (o.syncOneDrive ? 1 : 0) << L"\n" << o.folder << L"\n"
+      << (o.darkMode ? 1 : 0) << L"\n";
   return true;
 #endif
 }
 
 inline bool LoadOptions(const std::wstring& path, Options* o) {
   o->syncOneDrive = false;
+  o->darkMode = false;
   o->folder.clear();
 #if !defined(_WIN32)
   (void)path;
@@ -117,6 +120,12 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
   while (!o->folder.empty() && (o->folder.back() == L'\r' || o->folder.back() == L'\n'))
     o->folder.pop_back();
   o->syncOneDrive = sync != 0;
+  std::wstring darkLine;
+  if (std::getline(in, darkLine)) {
+    while (!darkLine.empty() && (darkLine.back() == L'\r' || darkLine.back() == L'\n'))
+      darkLine.pop_back();
+    o->darkMode = darkLine == L"1";
+  }
   return true;
 #endif
 }

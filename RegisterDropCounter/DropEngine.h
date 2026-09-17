@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <ctime>
 #include <cwchar>
 #include <sstream>
 #include <string>
@@ -286,6 +287,129 @@ inline void LoadSample(Counts regs[kRegisterCount]) {
   regs[2].n[Twenty] = 154;
   regs[2].n[Fifty] = 2;
   regs[2].n[Hundred] = 13;
+}
+
+inline constexpr int kReceiptCols = 42;
+inline constexpr int kReceiptPaperMm = 80;
+inline constexpr int kReceiptPrintMm = 72;
+
+inline std::wstring ReceiptClip(std::wstring s, int n) {
+  if (n < 0) n = 0;
+  if ((int)s.size() > n) s.resize((size_t)n);
+  return s;
+}
+
+inline std::wstring ReceiptPadR(const std::wstring& s, int n) {
+  std::wstring t = ReceiptClip(s, n);
+  if ((int)t.size() < n) t.append((size_t)(n - (int)t.size()), L' ');
+  return t;
+}
+
+inline std::wstring ReceiptPadL(const std::wstring& s, int n) {
+  std::wstring t = ReceiptClip(s, n);
+  if ((int)t.size() < n) t.insert(t.begin(), (size_t)(n - (int)t.size()), L' ');
+  return t;
+}
+
+inline std::wstring ReceiptCenter(const std::wstring& s, int n = kReceiptCols) {
+  std::wstring t = ReceiptClip(s, n);
+  int left = (n - (int)t.size()) / 2;
+  if (left < 0) left = 0;
+  return std::wstring((size_t)left, L' ') + t;
+}
+
+inline std::wstring ReceiptRule(int n = kReceiptCols) { return std::wstring((size_t)n, L'-'); }
+
+inline std::wstring ReceiptKv(const wchar_t* label, const std::wstring& value) {
+  std::wstring v = value.empty() ? L"________" : value;
+  std::wstring line = std::wstring(label) + v;
+  if ((int)line.size() <= kReceiptCols) return line;
+  return std::wstring(label) + L"\r\n" + ReceiptClip(v, kReceiptCols);
+}
+
+inline int ReceiptMaxWidth(const std::wstring& text) {
+  int m = 0;
+  size_t i = 0;
+  while (i < text.size()) {
+    size_t e = i;
+    while (e < text.size() && text[e] != L'\n' && text[e] != L'\r') ++e;
+    int w = (int)(e - i);
+    if (w > m) m = w;
+    if (e < text.size() && text[e] == L'\r' && e + 1 < text.size() && text[e + 1] == L'\n')
+      i = e + 2;
+    else if (e < text.size())
+      i = e + 1;
+    else
+      break;
+  }
+  return m;
+}
+
+/** 80 mm / 42-column Star TSC100 receipt. Uses CRLF for the Windows printer. */
+inline std::wstring BuildReceiptSlip(const wchar_t* till, int baseDollars, const RegisterResult& p,
+                                    const wchar_t* bag, const wchar_t* initials,
+                                    std::time_t now = 0) {
+  if (now == 0) now = std::time(nullptr);
+  std::tm tm{};
+#if defined(_WIN32)
+  localtime_s(&tm, &now);
+#else
+  if (const std::tm* ptime = std::localtime(&now)) tm = *ptime;
+#endif
+  wchar_t dateBuf[40]{};
+  wchar_t timeBuf[40]{};
+  wcsftime(dateBuf, 40, L"%a, %b %d, %Y", &tm);
+  wcsftime(timeBuf, 40, L"%I:%M %p", &tm);
+  std::wstring tillS = (till && till[0]) ? till : L"R1";
+  std::wstring bagS = (bag && bag[0]) ? bag : L"________";
+  std::wstring initS = (initials && initials[0]) ? initials : L"________";
+  const wchar_t* bal = !p.hasCount ? L"Empty" : p.balanced ? L"Yes" : L"No - off base";
+
+  std::wstring s;
+  s += ReceiptCenter(L"DROP SLIP");
+  s += L"\r\n";
+  s += ReceiptRule();
+  s += L"\r\n";
+  s += dateBuf;
+  s += L"\r\n";
+  s += timeBuf;
+  s += L"\r\n";
+  s += ReceiptKv(L"Till: ", tillS);
+  s += L"\r\n";
+  s += ReceiptKv(L"Base: ", Money(baseDollars * 100));
+  s += L"\r\n";
+  s += ReceiptKv(L"Bag #: ", bagS);
+  s += L"\r\n";
+  s += ReceiptKv(L"Initials: ", initS);
+  s += L"\r\n";
+  s += ReceiptRule();
+  s += L"\r\n";
+  s += ReceiptPadR(L"ITEM", 22) + ReceiptPadL(L"QTY", 6) + L" " + ReceiptPadL(L"AMOUNT", 13);
+  s += L"\r\n";
+  bool any = false;
+  for (int d = 0; d < DenomCount; ++d) {
+    if (p.drop.n[d] <= 0) continue;
+    any = true;
+    s += ReceiptPadR(kSlipName[d], 22);
+    s += ReceiptPadL(std::to_wstring(p.drop.n[d]), 6);
+    s += L" ";
+    s += ReceiptPadL(Money(p.drop.n[d] * kCents[d]), 13);
+    s += L"\r\n";
+  }
+  if (!any) s += L"(nothing to drop)\r\n";
+  s += ReceiptRule();
+  s += L"\r\n";
+  s += ReceiptPadR(L"DROP TOTAL", 29) + ReceiptPadL(Money(p.dropCents), 13) + L"\r\n";
+  s += ReceiptPadR(L"LEFT IN DRAWER", 29) + ReceiptPadL(Money(p.leftCents), 13) + L"\r\n";
+  s += ReceiptPadR(L"COUNTED", 29) + ReceiptPadL(Money(p.amountCents), 13) + L"\r\n";
+  s += L"Balanced: ";
+  s += bal;
+  s += L"\r\n";
+  s += ReceiptRule();
+  s += L"\r\n";
+  s += ReceiptCenter(L"Star 80mm receipt");
+  s += L"\r\n";
+  return s;
 }
 
 }  // namespace rdc

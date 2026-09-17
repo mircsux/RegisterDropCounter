@@ -19,6 +19,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         private set
     var bag by mutableStateOf("")
     var initials by mutableStateOf("")
+    var darkMode by mutableStateOf(false)
+        private set
 
     val registers = mutableStateListOf<Counts>().apply {
         repeat(DropEngine.REGISTER_COUNT) { add(Counts()) }
@@ -44,6 +46,11 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             base = v
             persistLive()
         }
+    }
+
+    fun setDarkMode(on: Boolean) {
+        darkMode = on
+        prefs().edit().putBoolean("darkMode", on).apply()
     }
 
     fun setCount(register: Int, denom: Denom, value: Int) {
@@ -218,5 +225,6 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
         bag = p.getString("bag", "") ?: ""
         initials = p.getString("initials", "") ?: ""
+        darkMode = p.getBoolean("darkMode", false)
     }
 }

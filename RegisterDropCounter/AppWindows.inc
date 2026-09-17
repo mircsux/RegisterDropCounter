@@ -313,7 +313,7 @@ LRESULT CALLBACK HistProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         return (LRESULT)Brush(kNavy);
       }
       SetBkColor(dc, kSheet);
-      SetTextColor(dc, RGB(26, 36, 46));
+      SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
     }
     case WM_NOTIFY: {
@@ -412,7 +412,6 @@ void ShowHistory(HWND owner) {
 }
 
 constexpr wchar_t kAboutClass[] = L"RegisterDropCounterAboutWnd";
-HWND gAbout = nullptr;
 constexpr int IDC_A_CREDIT = 9101;
 constexpr int IDC_A_TEXT = 9102;
 constexpr int IDC_A_CLOSE = 9103;
@@ -428,7 +427,7 @@ const wchar_t kAboutBody[] =
     L"4. Tab, Enter, or the arrow keys move to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
     L"6. The Left total turns green when it equals the register base. Red means that drawer is still off base.\r\n"
-    L"7. Drop slip prints a one-page bag slip: date, register, drop by denom, total, bag number, and initials.\r\n"
+    L"7. Drop slip prints an 80 mm Star TSC100 receipt: date, till, drop by denom, total, bag number, and initials.\r\n"
     L"8. Undo clear brings back the last drawer you cleared, without opening History.\r\n"
     L"\r\n"
     L"The drop\r\n"
@@ -448,6 +447,12 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.14.0  2026-09-16  Dark mode\r\n"
+    L"- Options: Dark mode. Navy headers and yellow count cells stay; the sheet goes dark.\r\n"
+    L"\r\n"
+    L"v2.13.0  2026-09-16  Star TSC100 drop slip\r\n"
+    L"- Drop slip prints as an 80 mm / 42-column receipt for a Star TSC100 / TSP100 (72 mm print width, 9 pt mono, 3 mm side margins, 11 mm cutter gap).\r\n"
+    L"\r\n"
     L"v2.12.0  2026-09-15  Android app\r\n"
     L"- Native Kotlin + Jetpack Compose Android app with the same drop math, yellow counts, number pad, undo, drop slip, named tills, and history.\r\n"
     L"\r\n"
@@ -573,14 +578,14 @@ LRESULT CALLBACK AboutProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_CTLCOLORSTATIC: {
       HDC dc = (HDC)w;
       SetBkColor(dc, kSheet);
-      SetTextColor(dc, kNavy);
+      SetTextColor(dc, kNavyFg);
       return (LRESULT)Brush(kSheet);
     }
     case WM_CTLCOLOREDIT: {
       HDC dc = (HDC)w;
-      SetBkColor(dc, RGB(255, 255, 255));
-      SetTextColor(dc, RGB(26, 36, 46));
-      return (LRESULT)GetStockObject(WHITE_BRUSH);
+      SetBkColor(dc, kPaper);
+      SetTextColor(dc, kInk);
+      return (LRESULT)Brush(kPaper);
     }
     case WM_COMMAND:
       if (LOWORD(w) == IDC_A_CLOSE) {
@@ -675,7 +680,6 @@ void ShowAbout(HWND owner) {
 }
 
 constexpr wchar_t kOptClass[] = L"RegisterDropCounterOptionsWnd";
-HWND gOpt = nullptr;
 constexpr int IDC_O_TITLE = 9201;
 constexpr int IDC_O_SYNC = 9202;
 constexpr int IDC_O_HELP = 9203;
@@ -687,6 +691,7 @@ constexpr int IDC_O_LOAD = 9208;
 constexpr int IDC_O_SYNCNOW = 9209;
 constexpr int IDC_O_STATUS = 9210;
 constexpr int IDC_O_CLOSE = 9211;
+constexpr int IDC_O_DARK = 9212;
 
 const wchar_t kOptHelp[] =
     L"When this is on, Clear and Clear All also write snapshots to a file in your "
@@ -697,6 +702,8 @@ const wchar_t kOptHelp[] =
     L"blank to use OneDrive\\RegisterDropCounter automatically.";
 
 void RefreshOptionsUi(HWND h) {
+  SendMessageW(GetDlgItem(h, IDC_O_DARK), BM_SETCHECK,
+               gOptions.darkMode ? BST_CHECKED : BST_UNCHECKED, 0);
   SendMessageW(GetDlgItem(h, IDC_O_SYNC), BM_SETCHECK,
                gOptions.syncOneDrive ? BST_CHECKED : BST_UNCHECKED, 0);
   std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
@@ -736,11 +743,12 @@ void RelayoutOptions(HWND h) {
   if (W < 240 || H < 180) return;
   const int pad = 16;
   const int btnH = 28;
-  HDWP dwp = BeginDeferWindowPos(12);
+  HDWP dwp = BeginDeferWindowPos(13);
   if (!dwp) return;
   Place(&dwp, h, IDC_O_TITLE, pad, 10, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_SYNC, pad, 56, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_HELP, pad, 88, W - pad * 2, 140);
+  Place(&dwp, h, IDC_O_DARK, pad, 52, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_SYNC, pad, 80, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_HELP, pad, 112, W - pad * 2, 116);
   Place(&dwp, h, IDC_O_PATHLBL, pad, 236, 80, 22);
   Place(&dwp, h, IDC_O_PATH, pad + 84, 232, W - pad * 2 - 84 - 128, 28);
   Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 232, 120, 28);
@@ -758,14 +766,18 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_CREATE: {
       MakeStatic(h, IDC_O_TITLE, L"Options", 16, 10, 400, 24, SS_LEFT);
       SendMessageW(GetDlgItem(h, IDC_O_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
+      HWND dark = CreateWindowW(L"BUTTON", L"Dark mode",
+                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 52, 400,
+                                24, h, (HMENU)(INT_PTR)IDC_O_DARK, gInst, nullptr);
+      SendMessageW(dark, WM_SETFONT, (WPARAM)gFont, TRUE);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
-                               WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 56, 400,
+                               WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 80, 400,
                                24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
       SendMessageW(chk, WM_SETFONT, (WPARAM)gFont, TRUE);
       HWND help = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", kOptHelp,
                                   WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | ES_MULTILINE |
                                       ES_READONLY | ES_AUTOVSCROLL,
-                                  16, 88, 590, 140, h, (HMENU)(INT_PTR)IDC_O_HELP, gInst, nullptr);
+                                  16, 112, 590, 116, h, (HMENU)(INT_PTR)IDC_O_HELP, gInst, nullptr);
       SendMessageW(help, WM_SETFONT, (WPARAM)gFont, TRUE);
       MakeStatic(h, IDC_O_PATHLBL, L"Folder", 16, 236, 80, 22, SS_LEFT);
       MakeEditText(h, IDC_O_PATH, 100, 232, 380, 28);
@@ -798,25 +810,29 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         return (LRESULT)Brush(kNavy);
       }
       SetBkColor(dc, kSheet);
-      SetTextColor(dc, RGB(26, 36, 46));
+      SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
     }
     case WM_CTLCOLOREDIT: {
       HDC dc = (HDC)w;
-      SetBkColor(dc, RGB(255, 255, 255));
-      SetTextColor(dc, RGB(26, 36, 46));
-      return (LRESULT)GetStockObject(WHITE_BRUSH);
+      SetBkColor(dc, kPaper);
+      SetTextColor(dc, kInk);
+      return (LRESULT)Brush(kPaper);
     }
     case WM_CTLCOLORBTN: {
       HDC dc = (HDC)w;
       SetBkColor(dc, kSheet);
-      SetTextColor(dc, RGB(26, 36, 46));
+      SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
     }
     case WM_COMMAND: {
       int id = LOWORD(w);
       int code = HIWORD(w);
-      if (id == IDC_O_SYNC) {
+      if (id == IDC_O_DARK) {
+        gOptions.darkMode = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
+        PersistOptions();
+        ApplyTheme();
+      } else if (id == IDC_O_SYNC) {
         gOptions.syncOneDrive = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
         PersistOptions();
         if (gOptions.syncOneDrive) {
@@ -946,42 +962,8 @@ void UndoLastClear(HWND h) {
 
 std::wstring BuildSlipText(int reg, const wchar_t* bag, const wchar_t* initials) {
   if (reg < 0 || reg >= rdc::kRegisterCount) reg = 0;
-  const rdc::RegisterResult p = rdc::ComputeRegister(gRegs[reg], gBase);
-  std::wstring s;
-  s += L"REGISTER DROP SLIP\r\n";
-  s += L"Date: ";
-  s += rdc::FormatSheetDate();
-  s += L"\r\n";
-  wchar_t line[160];
-  swprintf(line, 160, L"Register: %s\r\nRegister base: %s\r\n", gNames[reg].c_str(),
-           rdc::Money(gBase * 100).c_str());
-  s += line;
-  s += L"Bag / seal #: ";
-  s += (bag && bag[0]) ? bag : L"________";
-  s += L"\r\nInitials: ";
-  s += (initials && initials[0]) ? initials : L"________";
-  s += L"\r\n\r\nDenom                  Qty      Amount\r\n";
-  bool any = false;
-  for (int d = 0; d < rdc::DenomCount; ++d) {
-    if (p.drop.n[d] <= 0) continue;
-    any = true;
-    swprintf(line, 160, L"%-18s  %5d  %10s\r\n", rdc::kSlipName[d], p.drop.n[d],
-             rdc::Money(p.drop.n[d] * rdc::kCents[d]).c_str());
-    s += line;
-  }
-  if (!any) s += L"(nothing to drop)\r\n";
-  s += L"\r\n";
-  swprintf(line, 160, L"Drop total:      %s\r\nLeft in drawer:  %s\r\nDrawer counted:  %s\r\n",
-           rdc::Money(p.dropCents).c_str(), rdc::Money(p.leftCents).c_str(),
-           rdc::Money(p.amountCents).c_str());
-  s += line;
-  if (!p.hasCount)
-    s += L"Balanced: Empty\r\n";
-  else if (p.balanced)
-    s += L"Balanced: Yes\r\n";
-  else
-    s += L"Balanced: No - off base\r\n";
-  return s;
+  return rdc::BuildReceiptSlip(gNames[reg].c_str(), gBase, rdc::ComputeRegister(gRegs[reg], gBase),
+                               bag, initials);
 }
 
 void PrintSlipText(HWND owner, const std::wstring& body) {
@@ -990,22 +972,83 @@ void PrintSlipText(HWND owner, const std::wstring& body) {
   pd.hwndOwner = owner;
   pd.Flags = PD_RETURNDC | PD_NOSELECTION | PD_NOPAGENUMS;
   if (!PrintDlgW(&pd) || !pd.hDC) return;
+
+  if (pd.hDevMode) {
+    DEVMODEW* dm = static_cast<DEVMODEW*>(GlobalLock(pd.hDevMode));
+    if (dm) {
+      dm->dmFields |= DM_ORIENTATION | DM_PAPERSIZE | DM_PAPERWIDTH | DM_PAPERLENGTH;
+      dm->dmOrientation = DMORIENT_PORTRAIT;
+      dm->dmPaperSize = DMPAPER_USER;
+      dm->dmPaperWidth = 800;    // 80.0 mm, tenths of a millimeter
+      dm->dmPaperLength = 2000;  // 200 mm; Star driver auto-cuts
+      HDC reset = ResetDCW(pd.hDC, dm);
+      if (reset) pd.hDC = reset;
+      GlobalUnlock(pd.hDevMode);
+    }
+  }
+
   DOCINFOW di{};
   di.cbSize = sizeof(di);
   di.lpszDocName = L"Register Drop Slip";
   if (StartDocW(pd.hDC, &di) > 0) {
     StartPage(pd.hDC);
-    RECT rc{72, 72, 0, 0};
-    rc.right = GetDeviceCaps(pd.hDC, HORZRES) - 72;
-    rc.bottom = GetDeviceCaps(pd.hDC, VERTRES) - 72;
-    HFONT font = CreateFontW(-MulDiv(11, GetDeviceCaps(pd.hDC, LOGPIXELSY), 72), 0, 0, 0,
-                             FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-                             CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN,
-                             L"Consolas");
-    HGDIOBJ old = SelectObject(pd.hDC, font);
-    DrawTextW(pd.hDC, body.c_str(), -1, &rc, DT_LEFT | DT_TOP | DT_WORDBREAK);
-    SelectObject(pd.hDC, old);
-    DeleteObject(font);
+    const int dpiX = GetDeviceCaps(pd.hDC, LOGPIXELSX);
+    const int dpiY = GetDeviceCaps(pd.hDC, LOGPIXELSY);
+    const int horz = GetDeviceCaps(pd.hDC, HORZRES);
+    const int vert = GetDeviceCaps(pd.hDC, VERTRES);
+    const int mm72 = MulDiv(720, dpiX, 254);
+    const int mm3 = MulDiv(30, dpiX, 254);
+    const int mm3y = MulDiv(30, dpiY, 254);
+    const int mm11 = MulDiv(110, dpiY, 254);
+    int contentW = mm72;
+    if (contentW > horz) contentW = horz;
+    int left = 0;
+    if (horz > mm72 + mm3) {
+      left = mm3;
+      contentW = mm72;
+    }
+    int top = (vert > mm72) ? mm3y : 0;
+    int bottom = vert - mm11;
+    if (bottom <= top + 40) bottom = vert;
+
+    HFONT font = nullptr;
+    HGDIOBJ old = nullptr;
+    for (int pt = 9; pt >= 6; --pt) {
+      if (font) {
+        SelectObject(pd.hDC, old);
+        DeleteObject(font);
+      }
+      font = CreateFontW(-MulDiv(pt, dpiY, 72), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                         DEFAULT_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                         NONANTIALIASED_QUALITY, FIXED_PITCH | FF_MODERN, L"Consolas");
+      old = SelectObject(pd.hDC, font);
+      SIZE sz{};
+      GetTextExtentPoint32W(pd.hDC, L"012345678901234567890123456789012345678901",
+                            rdc::kReceiptCols, &sz);
+      if (sz.cx <= contentW) break;
+    }
+
+    SetBkMode(pd.hDC, TRANSPARENT);
+    SetTextColor(pd.hDC, RGB(0, 0, 0));
+    SetTextAlign(pd.hDC, TA_LEFT | TA_TOP);
+    TEXTMETRICW tm{};
+    GetTextMetricsW(pd.hDC, &tm);
+    const int lineH = tm.tmHeight + tm.tmExternalLeading;
+    int y = top;
+    size_t start = 0;
+    while (start <= body.size() && y + lineH <= bottom) {
+      size_t end = body.find(L'\n', start);
+      if (end == std::wstring::npos) end = body.size();
+      std::wstring line = body.substr(start, end - start);
+      if (!line.empty() && line.back() == L'\r') line.pop_back();
+      if ((int)line.size() > rdc::kReceiptCols) line.resize((size_t)rdc::kReceiptCols);
+      if (!line.empty()) TextOutW(pd.hDC, left, y, line.c_str(), (int)line.size());
+      y += lineH;
+      if (end == body.size()) break;
+      start = end + 1;
+    }
+    if (old) SelectObject(pd.hDC, old);
+    if (font) DeleteObject(font);
     EndPage(pd.hDC);
     EndDoc(pd.hDC);
   }
@@ -1043,7 +1086,9 @@ LRESULT CALLBACK SlipProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       swprintf(title, 40, L"Drop slip  R%d", gSlipReg + 1);
       MakeStatic(h, IDC_S_TITLE, title, 16, 10, 400, 24, SS_LEFT);
       SendMessageW(GetDlgItem(h, IDC_S_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
-      MakeStatic(h, IDC_S_META, rdc::FormatSheetDate().c_str(), 16, 40, 500, 20, SS_LEFT);
+      wchar_t meta[96];
+      swprintf(meta, 96, L"%s   Star TSC100  80 mm / 42 col", rdc::FormatSheetDate().c_str());
+      MakeStatic(h, IDC_S_META, meta, 16, 40, 500, 20, SS_LEFT);
       MakeStatic(h, IDC_S_BAGLBL, L"Bag / seal #", 16, 72, 100, 22, SS_LEFT);
       MakeEditText(h, IDC_S_BAG, 120, 68, 200, 28);
       SetDlgItemTextW(h, IDC_S_BAG, gSlipBag.c_str());
@@ -1081,14 +1126,14 @@ LRESULT CALLBACK SlipProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         return (LRESULT)Brush(kNavy);
       }
       SetBkColor(dc, kSheet);
-      SetTextColor(dc, RGB(26, 36, 46));
+      SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
     }
     case WM_CTLCOLOREDIT: {
       HDC dc = (HDC)w;
-      SetBkColor(dc, RGB(255, 255, 255));
-      SetTextColor(dc, RGB(26, 36, 46));
-      return (LRESULT)GetStockObject(WHITE_BRUSH);
+      SetBkColor(dc, kPaper);
+      SetTextColor(dc, kInk);
+      return (LRESULT)Brush(kPaper);
     }
     case WM_COMMAND: {
       int id = LOWORD(w);
@@ -1220,8 +1265,11 @@ void StartTillEdit(HWND h, int i) {
   RECT rc{};
   if (!TabCtrl_GetItemRect(tabs, i, &rc)) return;
   MapWindowPoints(tabs, h, (POINT*)&rc, 2);
-  SetWindowPos(e, HWND_TOP, rc.left, rc.top, (std::max)(40, rc.right - rc.left),
-               (std::max)(20, rc.bottom - rc.top), SWP_SHOWWINDOW);
+  int tw = rc.right - rc.left;
+  int th = rc.bottom - rc.top;
+  if (tw < 40) tw = 40;
+  if (th < 20) th = 20;
+  SetWindowPos(e, HWND_TOP, rc.left, rc.top, tw, th, SWP_SHOWWINDOW);
   SetWindowTextW(e, gNames[i].c_str());
   SetFocus(e);
   SendMessageW(e, EM_SETSEL, 0, -1);
@@ -1364,6 +1412,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_CREATE:
       Layout(h);
       rdc::LoadOptions(OptionsPath(), &gOptions);
+      ApplyTheme();
       rdc::LoadHistory(HistoryPath(), &gHistory);
       LoadSlipFields();
       LoadTillNames();
@@ -1414,7 +1463,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       }
       if (id == IDC_LOGTITLE) {
         SetBkColor(dc, kSheet);
-        SetTextColor(dc, kNavy);
+        SetTextColor(dc, kNavyFg);
         return (LRESULT)Brush(kSheet);
       }
       if (id >= IDC_HDR0 && id < IDC_HDR0 + 6) {
@@ -1427,7 +1476,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         COLORREF bg = (!r.hasCount) ? kSheet : (r.balanced ? kOk : kBad);
         SetBkMode(dc, OPAQUE);
         SetBkColor(dc, bg);
-        SetTextColor(dc, (!r.hasCount) ? RGB(92, 107, 122)
+        SetTextColor(dc, (!r.hasCount) ? kMuted
                                       : (r.balanced ? RGB(0, 97, 0) : RGB(156, 0, 6)));
         return (LRESULT)Brush(bg);
       }
@@ -1436,7 +1485,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         const int drop = r.drop.n[id - IDC_DROP0];
         COLORREF bg = drop > 0 ? kDropHit : kComputed;
         SetBkColor(dc, bg);
-        SetTextColor(dc, drop > 0 ? RGB(0, 97, 0) : RGB(26, 36, 46));
+        SetTextColor(dc, drop > 0 ? RGB(0, 97, 0) : kCellInk);
         return (LRESULT)Brush(bg);
       }
       if ((id >= IDC_AMT0 && id < IDC_AMT0 + rdc::DenomCount) ||
@@ -1444,23 +1493,23 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           (id >= IDC_LEFT0 && id < IDC_LEFT0 + rdc::DenomCount) ||
           id == IDC_TOTAL_AMT || id == IDC_TOTAL_DROP) {
         SetBkColor(dc, kComputed);
-        SetTextColor(dc, RGB(26, 36, 46));
+        SetTextColor(dc, kCellInk);
         return (LRESULT)Brush(kComputed);
       }
       SetBkColor(dc, kSheet);
-      SetTextColor(dc, RGB(26, 36, 46));
+      SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
     }
     case WM_CTLCOLOREDIT: {
       HDC dc = (HDC)w;
       int id = GetDlgCtrlID((HWND)l);
       if (id == IDC_TAB_EDIT) {
-        SetBkColor(dc, RGB(255, 255, 255));
-        SetTextColor(dc, RGB(26, 36, 46));
-        return (LRESULT)GetStockObject(WHITE_BRUSH);
+        SetBkColor(dc, kPaper);
+        SetTextColor(dc, kInk);
+        return (LRESULT)Brush(kPaper);
       }
       SetBkColor(dc, kInput);
-      SetTextColor(dc, RGB(26, 36, 46));
+      SetTextColor(dc, kCellInk);
       return (LRESULT)Brush(kInput);
     }
     case WM_NOTIFY: {

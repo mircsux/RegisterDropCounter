@@ -29,4 +29,25 @@ class DropEngineTest {
         assertEquals(3, r.drop[Denom.Two])
         assertEquals(400, r.left[Denom.One])
     }
+
+    @Test
+    fun dropSlipFitsStarTsc100() {
+        val c = Counts()
+        c[Denom.Twenty] = 25
+        val r = DropEngine.compute(c, 400)
+        val text = DropEngine.dropSlipText(
+            till = "Drive-thru lane",
+            baseDollars = 400,
+            r = r,
+            bag = "SEAL-998877",
+            initials = "RRJR",
+        )
+        assertTrue(text.contains("DROP SLIP"))
+        assertTrue(text.contains("Till: Drive-thru lane"))
+        assertTrue(text.contains("DROP TOTAL"))
+        assertEquals(42, DropEngine.RECEIPT_COLS)
+        for (line in text.split("\n")) {
+            assertTrue("line too wide: $line", line.length <= DropEngine.RECEIPT_COLS)
+        }
+    }
 }

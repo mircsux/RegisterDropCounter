@@ -67,18 +67,13 @@ struct DropSlipView: View {
     }
 
     private func slipText() -> String {
-        var s = "REGISTER DROP SLIP\n"
-        s += "Date: \(Date.now.formatted(date: .complete, time: .shortened))\n"
-        s += "Register: \(model.names[index])\n"
-        s += "Register base: \(DropEngine.money(model.base * 100))\n"
-        s += "Bag / seal #: \(model.bag.isEmpty ? "________" : model.bag)\n"
-        s += "Initials: \(model.initials.isEmpty ? "________" : model.initials)\n\n"
-        for line in lines {
-            s += "\(line.0)  \(line.1)  \(DropEngine.money(line.2))\n"
-        }
-        s += "\nDrop total: \(DropEngine.money(result.dropCents))\n"
-        s += "Left in drawer: \(DropEngine.money(result.leftCents))\n"
-        return s
+        DropEngine.dropSlipText(
+            till: model.names[index],
+            baseDollars: model.base,
+            result: result,
+            bag: model.bag,
+            initials: model.initials
+        )
     }
 
     private func copySlip() {
@@ -88,13 +83,30 @@ struct DropSlipView: View {
 
     private func printSlip() {
         model.saveSlipFields()
+        let text = slipText()
         let info = UIPrintInfo.printInfo()
-        info.jobName = "Register Drop Slip \(model.names[index])"
+        info.jobName = "Drop Slip \(model.names[index])"
         info.outputType = .grayscale
+        info.orientation = .portrait
+
+        let fmt = UISimpleTextPrintFormatter(text: text)
+        fmt.font = UIFont(name: "Menlo-Regular", size: 9)
+            ?? UIFont.monospacedSystemFont(ofSize: 9, weight: .regular)
+        fmt.color = .black
+        fmt.perPageContentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 31, right: 8)
+
+        let renderer = UIPrintPageRenderer()
+        renderer.addPrintFormatter(fmt, startingAtPageAt: 0)
+        let paperW: CGFloat = 80.0 / 25.4 * 72.0
+        let paperH: CGFloat = 200.0 / 25.4 * 72.0
+        let paper = CGRect(x: 0, y: 0, width: paperW, height: paperH)
+        let printable = CGRect(x: 8, y: 8, width: paperW - 16, height: paperH - 39)
+        renderer.setValue(paper, forKey: "paperRect")
+        renderer.setValue(printable, forKey: "printableRect")
+
         let ctrl = UIPrintInteractionController.shared
         ctrl.printInfo = info
-        let fmt = UIMarkupTextPrintFormatter(markupText: "<pre>\(slipText())</pre>")
-        ctrl.printFormatter = fmt
+        ctrl.printPageRenderer = renderer
         ctrl.present(animated: true)
     }
 }

@@ -10,6 +10,9 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -35,6 +38,27 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DropCounterApp(model: AppModel = viewModel()) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    RdcColor.dark = model.darkMode
+    val scheme = if (model.darkMode) {
+        darkColorScheme(
+            background = RdcColor.sheet,
+            surface = RdcColor.paper,
+            onBackground = RdcColor.ink,
+            onSurface = RdcColor.ink,
+            primary = RdcColor.navy,
+            onPrimary = RdcColor.onNavy,
+        )
+    } else {
+        lightColorScheme(
+            background = RdcColor.sheet,
+            surface = RdcColor.paper,
+            onBackground = RdcColor.ink,
+            onSurface = RdcColor.ink,
+            primary = RdcColor.navy,
+            onPrimary = RdcColor.onNavy,
+        )
+    }
+    MaterialTheme(colorScheme = scheme) {
     Scaffold(
         containerColor = RdcColor.sheet,
         bottomBar = {
@@ -52,7 +76,7 @@ fun DropCounterApp(model: AppModel = viewModel()) {
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = RdcColor.navy,
+                            selectedIconColor = RdcColor.navyFg,
                             selectedTextColor = RdcColor.onNavy,
                             indicatorColor = RdcColor.paper,
                             unselectedIconColor = RdcColor.onNavy.copy(alpha = 0.7f),
@@ -69,5 +93,6 @@ fun DropCounterApp(model: AppModel = viewModel()) {
             2 -> OptionsScreen(model, Modifier.padding(pad))
             else -> AboutScreen(Modifier.padding(pad))
         }
+    }
     }
 }

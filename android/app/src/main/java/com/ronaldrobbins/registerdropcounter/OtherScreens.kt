@@ -47,7 +47,7 @@ fun HistoryScreen(model: AppModel, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text("History", fontWeight = FontWeight.SemiBold, color = RdcColor.navy, fontSize = 20.sp)
+        Text("History", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg, fontSize = 20.sp)
         Text("Each Clear saves the sheet as it was.", color = RdcColor.muted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
         if (model.history.isEmpty()) {
@@ -112,9 +112,10 @@ fun DropSlipDialog(model: AppModel, index: Int, onClose: () -> Unit) {
                 .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text("Register Drop Slip", fontWeight = FontWeight.SemiBold, color = RdcColor.navy)
+            Text("Register Drop Slip", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("Star TSC100  ·  80 mm / 42 col", color = RdcColor.muted, fontSize = 12.sp)
             Spacer(Modifier.height(8.dp))
-            Text(text, fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = RdcColor.ink)
+            Text(text, fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = RdcColor.ink)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(value = model.bag, onValueChange = { model.bag = it }, label = { Text("Bag / seal #") }, singleLine = true)
             OutlinedTextField(value = model.initials, onValueChange = { model.initials = it }, label = { Text("Initials") }, singleLine = true)
@@ -127,6 +128,14 @@ fun DropSlipDialog(model: AppModel, index: Int, onClose: () -> Unit) {
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = RdcColor.navy),
                 ) { Text("Copy") }
+                Spacer(Modifier.padding(8.dp))
+                Button(
+                    onClick = {
+                        model.saveSlipFields()
+                        printDropSlip(ctx, "Drop Slip ${model.names[index]}", slipText(model, index, r))
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = RdcColor.navy),
+                ) { Text("Print") }
                 Spacer(Modifier.padding(8.dp))
                 Button(
                     onClick = {
@@ -148,26 +157,13 @@ fun DropSlipDialog(model: AppModel, index: Int, onClose: () -> Unit) {
 }
 
 private fun slipText(model: AppModel, index: Int, r: RegisterResult): String {
-    val date = SimpleDateFormat("EEEE, MMMM d, yyyy  h:mm a", Locale.US).format(Date())
-    val lines = StringBuilder()
-    lines.append("REGISTER DROP SLIP\nDate: $date\nRegister: ${model.names[index]}\n")
-    lines.append("Register base: ${DropEngine.money(model.base * 100)}\n")
-    lines.append("Bag / seal #: ${model.bag.ifEmpty { "________" }}\n")
-    lines.append("Initials: ${model.initials.ifEmpty { "________" }}\n\n")
-    for (d in Denom.entries) {
-        val n = r.drop[d]
-        if (n > 0) lines.append("${d.slipName}  $n  ${DropEngine.money(n * d.cents)}\n")
-    }
-    val bal = when {
-        !r.hasCount -> "Empty"
-        r.balanced -> "Yes - left equals base"
-        else -> "No - off base"
-    }
-    lines.append("\nDrop total: ${DropEngine.money(r.dropCents)}\n")
-    lines.append("Left in drawer: ${DropEngine.money(r.leftCents)}\n")
-    lines.append("Balanced: $bal\n")
-    lines.append("Drawer counted: ${DropEngine.money(r.amountCents)}\n")
-    return lines.toString()
+    return DropEngine.dropSlipText(
+        till = model.names[index],
+        baseDollars = model.base,
+        r = r,
+        bag = model.bag,
+        initials = model.initials,
+    )
 }
 
 @Composable
@@ -180,15 +176,27 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text("Options", fontWeight = FontWeight.SemiBold, color = RdcColor.navy, fontSize = 20.sp)
+        Text("Options", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg, fontSize = 20.sp)
         Spacer(Modifier.height(12.dp))
-        Text("Register base", fontWeight = FontWeight.SemiBold)
+        Text("Appearance", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { model.setDarkMode(!model.darkMode) }
+                .padding(vertical = 8.dp),
+        ) {
+            Text("Dark mode", color = RdcColor.ink, modifier = Modifier.weight(1f))
+            Text(if (model.darkMode) "On" else "Off", color = RdcColor.navyFg, fontWeight = FontWeight.SemiBold)
+        }
+        Text("Navy headers and yellow count cells stay. The sheet goes dark.", color = RdcColor.muted, fontSize = 13.sp)
+        Spacer(Modifier.height(16.dp))
+        Text("Register base", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
         Row {
             DropEngine.baseOptions.forEach { b ->
                 val on = model.base == b
                 Text(
                     DropEngine.money(b * 100),
-                    color = if (on) RdcColor.onNavy else RdcColor.navy,
+                    color = if (on) RdcColor.onNavy else RdcColor.navyFg,
                     modifier = Modifier
                         .padding(end = 8.dp, top = 8.dp)
                         .background(if (on) RdcColor.navy else RdcColor.paper)
@@ -203,23 +211,25 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
             Text("Load sample drawers")
         }
         Spacer(Modifier.height(20.dp))
-        Text("Cash log", fontWeight = FontWeight.SemiBold)
+        Text("Cash log", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
         Text("Tap a till to copy that row for the national log.", color = RdcColor.muted, fontSize = 13.sp)
         Spacer(Modifier.height(8.dp))
-        Text("Deposit (drop)", fontWeight = FontWeight.Medium)
+        Text("Deposit (drop)", fontWeight = FontWeight.Medium, color = RdcColor.ink)
         repeat(DropEngine.REGISTER_COUNT) { i ->
             Text(
                 "${model.names[i]}   Copy",
+                color = RdcColor.ink,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { clip.setText(AnnotatedString(DropEngine.oneCashLogTsv(model.result(i), true))) }
                     .padding(vertical = 8.dp),
             )
         }
-        Text("EOD drawer", fontWeight = FontWeight.Medium)
+        Text("EOD drawer", fontWeight = FontWeight.Medium, color = RdcColor.ink)
         repeat(DropEngine.REGISTER_COUNT) { i ->
             Text(
                 "${model.names[i]}   Copy",
+                color = RdcColor.ink,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { clip.setText(AnnotatedString(DropEngine.oneCashLogTsv(model.result(i), false))) }
@@ -245,20 +255,22 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.12.0  (2026-09-15)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.14.0  (2026-09-16)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
-            Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navy)
+            Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
             Text("Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells with the number pad. Amount, Drop, and Left fill in. Left turns green when it equals the base.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
-            Text("The drop", fontWeight = FontWeight.SemiBold, color = RdcColor.navy)
+            Text("The drop", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
-            Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navy)
-            Text("v2.12.0  Android app (Kotlin + Jetpack Compose). Same drop math as Windows, iPhone, and C23.")
-            Text("v2.11.0  ISO C23 console app.")
-            Text("v2.10.0  iPhone app (SwiftUI).")
-            Text("v2.9.0  Named tills — tap R1–R10 to rename.")
+            Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.14.0  Dark mode on the Options tab.", color = RdcColor.ink)
+            Text("v2.13.0  Star TSC100 drop slip — 80 mm / 42-column receipt.", color = RdcColor.ink)
+            Text("v2.12.0  Android app (Kotlin + Jetpack Compose). Same drop math as Windows, iPhone, and C23.", color = RdcColor.ink)
+            Text("v2.11.0  ISO C23 console app.", color = RdcColor.ink)
+            Text("v2.10.0  iPhone app (SwiftUI).", color = RdcColor.ink)
+            Text("v2.9.0  Named tills — tap R1–R10 to rename.", color = RdcColor.ink)
         }
     }
 }

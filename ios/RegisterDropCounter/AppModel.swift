@@ -11,9 +11,10 @@ final class AppModel: ObservableObject {
     @Published var active = 0
     @Published var bag = ""
     @Published var initials = ""
+    @Published var darkMode = false
 
-    static let version = "2.12.0"
-    static let releaseDate = "2026-09-15"
+    static let version = "2.14.0"
+    static let releaseDate = "2026-09-16"
 
     private let historyLimit = 200
 
@@ -137,6 +138,11 @@ final class AppModel: ObservableObject {
 
     func saveSlipFields() { persistSlip() }
 
+    func setDarkMode(_ on: Bool) {
+        darkMode = on
+        UserDefaults.standard.set(on, forKey: "rdc.darkMode")
+    }
+
     private func load() {
         if let n = UserDefaults.standard.array(forKey: "rdc.names") as? [String] {
             names = (0..<DropEngine.registerCount).map { i in
@@ -158,6 +164,7 @@ final class AppModel: ObservableObject {
         }
         bag = UserDefaults.standard.string(forKey: "rdc.bag") ?? ""
         initials = UserDefaults.standard.string(forKey: "rdc.initials") ?? ""
+        darkMode = UserDefaults.standard.bool(forKey: "rdc.darkMode")
     }
 }
 
@@ -185,5 +192,17 @@ enum DropEngineSelfTest {
         assert(r.drop[.twenty] == 95)
         assert(r.drop[.hundred] == 12)
         assert(r.left[.one] == 109)
+        var slipC = Counts()
+        slipC[.twenty] = 25
+        let slipR = DropEngine.compute(slipC, baseDollars: 400)
+        let slip = DropEngine.dropSlipText(
+            till: "Drive-thru lane",
+            baseDollars: 400,
+            result: slipR,
+            bag: "SEAL-998877",
+            initials: "RRJR"
+        )
+        assert(slip.contains("DROP SLIP"))
+        assert(slip.split(separator: "\n").allSatisfy { $0.count <= DropEngine.receiptCols })
     }
 }

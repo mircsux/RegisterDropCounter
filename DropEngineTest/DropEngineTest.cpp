@@ -128,6 +128,16 @@ int main() {
   Expect((int)merged.size(), 2, "history merge keeps unique snapshots");
   Expect(merged[0].at > snap.at ? 1 : 0, 1, "history merge newest first");
 
+  rdc::Counts slipC{};
+  slipC.n[rdc::Twenty] = 25;
+  auto slipR = rdc::ComputeRegister(slipC, 400);
+  auto slip = rdc::BuildReceiptSlip(L"Drive-thru lane", 400, slipR, L"SEAL-998877", L"RRJR");
+  Expect(slip.find(L"DROP SLIP") != std::wstring::npos ? 1 : 0, 1, "slip title");
+  Expect(slip.find(L"Till: Drive-thru lane") != std::wstring::npos ? 1 : 0, 1, "slip till");
+  Expect(rdc::ReceiptMaxWidth(slip) <= rdc::kReceiptCols ? 1 : 0, 1, "slip 42 col");
+  Expect(rdc::kReceiptCols, 42, "receipt cols");
+  Expect(rdc::kReceiptPaperMm, 80, "receipt paper mm");
+
   if (gFails) {
     std::cerr << gFails << " test(s) failed\n";
     return 1;
