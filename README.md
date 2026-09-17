@@ -47,5 +47,5 @@ Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe 
 - **Windows (C++ Win32)** — this folder. Open `RegisterDropCounter.sln`.
 - **Android (Kotlin)** — `android/` folder in Android Studio. See `android/HOW_TO_OPEN.txt`.
 - **iPhone (SwiftUI)** — `ios/RegisterDropCounter.xcodeproj`. See `ios/HOW_TO_OPEN.txt`.
+- **Web (HTML/JS)** — `web/index.html` in any browser. See `web/HOW_TO_OPEN.txt`.
 - **ISO C23 console** — `c23/RegisterDropCounter-C23.sln` or `c23/Makefile`. No C++.
-
