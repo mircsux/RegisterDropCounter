@@ -1,8 +1,8 @@
 #ifndef RDC_VERSION_H
 #define RDC_VERSION_H
 
-#define RDC_APP_VERSION "2.14.0"
-#define RDC_APP_RELEASE_DATE "2026-09-16"
-#define RDC_VERSION_STAMP "2.14.0  (2026-09-16)"
+#define RDC_APP_VERSION "2.14.1"
+#define RDC_APP_RELEASE_DATE "2026-09-17"
+#define RDC_VERSION_STAMP "2.14.1  (2026-09-17)"
 
 #endif

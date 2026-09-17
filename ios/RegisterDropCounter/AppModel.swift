@@ -13,8 +13,8 @@ final class AppModel: ObservableObject {
     @Published var initials = ""
     @Published var darkMode = false
 
-    static let version = "2.14.0"
-    static let releaseDate = "2026-09-16"
+    static let version = "2.14.1"
+    static let releaseDate = "2026-09-17"
 
     private let historyLimit = 200
 

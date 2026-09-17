@@ -447,6 +447,9 @@ const wchar_t kAboutBody[] =
     L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.14.1  2026-09-17  Visual Studio build\r\n"
+    L"- Windows project compiles in Visual Studio 2022: History till selection and the till-name editor.\r\n"
+    L"\r\n"
     L"v2.14.0  2026-09-16  Dark mode\r\n"
     L"- Options: Dark mode. Navy headers and yellow count cells stay; the sheet goes dark.\r\n"
     L"\r\n"

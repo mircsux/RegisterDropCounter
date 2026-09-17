@@ -35,6 +35,8 @@ struct AboutView: View {
                         Text("Changelog")
                             .font(.headline)
                             .foregroundStyle(Theme.navyFg)
+                        Text("v2.14.1  Visual Studio build — History till selection and till-name editor.")
+                            .foregroundStyle(Theme.ink)
                         Text("v2.14.0  Dark mode on the Options tab.")
                             .foregroundStyle(Theme.ink)
                         Text("v2.13.0  Star TSC100 drop slip — 80 mm / 42-column receipt.")

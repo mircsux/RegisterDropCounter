@@ -12,8 +12,8 @@ android {
         applicationId = "com.ronaldrobbins.registerdropcounter"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2140
-        versionName = "2.14.0"
+        versionCode = 2141
+        versionName = "2.14.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

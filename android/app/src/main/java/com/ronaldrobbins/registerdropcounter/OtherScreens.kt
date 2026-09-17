@@ -255,7 +255,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.14.0  (2026-09-16)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.14.1  (2026-09-17)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
             Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
@@ -265,6 +265,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.14.1  Visual Studio build — History till selection and till-name editor.", color = RdcColor.ink)
             Text("v2.14.0  Dark mode on the Options tab.", color = RdcColor.ink)
             Text("v2.13.0  Star TSC100 drop slip — 80 mm / 42-column receipt.", color = RdcColor.ink)
             Text("v2.12.0  Android app (Kotlin + Jetpack Compose). Same drop math as Windows, iPhone, and C23.", color = RdcColor.ink)
