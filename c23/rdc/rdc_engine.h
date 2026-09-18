@@ -84,6 +84,7 @@ void rdc_area_tsv(const rdc_log_row *rows, int n, char *buf, size_t buf_n);
 
 int rdc_valid_base(int dollars);
 void rdc_load_sample(rdc_counts regs[RDC_REGISTER_COUNT]);
+void rdc_load_sample_drops(rdc_counts regs[RDC_REGISTER_COUNT], int base_dollars);
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@ struct OptionsView: View {
                         get: { model.darkMode },
                         set: { model.setDarkMode($0) }
                     ))
-                    Text("Navy headers and yellow count cells stay. The sheet goes dark.")
+                    Text("Count cells stay gold so you can still find them. The rest of the sheet goes dark.")
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
                 }
@@ -32,7 +32,6 @@ struct OptionsView: View {
                     Text("Counts, names, and history save on this iPhone. They also write JSON files you can share from the Files app.")
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
-                    Button("Load sample drawers") { model.loadSample() }
                 }
             }
             .navigationTitle("Options")

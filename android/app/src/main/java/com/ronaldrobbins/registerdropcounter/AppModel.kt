@@ -21,6 +21,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var initials by mutableStateOf("")
     var darkMode by mutableStateOf(false)
         private set
+    private var sampleScratch = false
 
     val registers = mutableStateListOf<Counts>().apply {
         repeat(DropEngine.REGISTER_COUNT) { add(Counts()) }
@@ -67,13 +68,14 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearRegister(i: Int) {
-        snapshot(HistoryEntry.REGISTER, i)
+        if (!sampleScratch) snapshot(HistoryEntry.REGISTER, i)
         registers[i] = Counts()
         persistLive()
     }
 
     fun clearAll() {
-        snapshot(HistoryEntry.ALL, null)
+        if (!sampleScratch) snapshot(HistoryEntry.ALL, null)
+        sampleScratch = false
         for (i in 0 until DropEngine.REGISTER_COUNT) registers[i] = Counts()
         persistLive()
     }
@@ -92,6 +94,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                 registers[i] = last.registers.getOrElse(i) { Counts() }.copyOf()
             }
         }
+        sampleScratch = false
         persistLive()
         return true
     }
@@ -102,6 +105,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         for (i in 0 until DropEngine.REGISTER_COUNT) {
             registers[i] = e.registers.getOrElse(i) { Counts() }.copyOf()
         }
+        sampleScratch = false
         persistLive()
         return true
     }
@@ -112,9 +116,9 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun loadSample() {
-        base = 400
-        val sample = SampleData.registers()
+        val sample = SampleData.randomRegisters(base)
         for (i in 0 until DropEngine.REGISTER_COUNT) registers[i] = sample[i]
+        sampleScratch = true
         persistLive()
     }
 
@@ -151,7 +155,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             c.n.forEach { row.put(it) }
             arr.put(row)
         }
-        prefs().edit().putInt("base", base).putString("registers", arr.toString()).apply()
+        prefs().edit().putInt("base", base).putString("registers", arr.toString()).putBoolean("sampleScratch", sampleScratch).apply()
     }
 
     private fun persistNames() {
@@ -183,6 +187,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         val p = prefs()
         val b = p.getInt("base", 400)
         if (b in DropEngine.baseOptions) base = b
+        sampleScratch = p.getBoolean("sampleScratch", false)
         p.getString("registers", null)?.let { raw ->
             val arr = JSONArray(raw)
             for (i in 0 until DropEngine.REGISTER_COUNT) {

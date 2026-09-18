@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static const int k_cents[RDC_DENOM_COUNT] = {
     1, 5, 10, 25, 50, 200, 500, 1'000, 100, 200, 500, 1'000, 2'000, 5'000, 10'000};
@@ -377,4 +378,39 @@ void rdc_load_sample(rdc_counts regs[RDC_REGISTER_COUNT]) {
   regs[2].n[RDC_TWENTY] = 154;
   regs[2].n[RDC_FIFTY] = 2;
   regs[2].n[RDC_HUNDRED] = 13;
+}
+
+void rdc_load_sample_drops(rdc_counts regs[RDC_REGISTER_COUNT], int base_dollars) {
+  static int seeded = 0;
+  if (!seeded) {
+    srand((unsigned)time(NULL));
+    seeded = 1;
+  }
+  if (!regs) return;
+  if (!rdc_valid_base(base_dollars)) base_dollars = 400;
+  for (int i = 0; i < RDC_REGISTER_COUNT; ++i) {
+    for (int d = 0; d < RDC_DENOM_COUNT; ++d) {
+      int hi = (d >= RDC_PROLL && d <= RDC_QROLL) ? 10 : 100;
+      regs[i].n[d] = rand() % (hi + 1);
+    }
+    for (;;) {
+      rdc_result r = rdc_compute(&regs[i], base_dollars);
+      if (r.drop_cents < 600000) break;
+      int need = r.drop_cents - 599999;
+      int removed = 0;
+      for (int o = 0; o < RDC_DENOM_COUNT; ++o) {
+        int d = k_drop_order[o];
+        if (regs[i].n[d] <= 0) continue;
+        int take = need / k_cents[d];
+        if (need % k_cents[d]) ++take;
+        if (take > regs[i].n[d]) take = regs[i].n[d];
+        if (take > 0) {
+          regs[i].n[d] -= take;
+          removed = 1;
+          break;
+        }
+      }
+      if (!removed) break;
+    }
+  }
 }

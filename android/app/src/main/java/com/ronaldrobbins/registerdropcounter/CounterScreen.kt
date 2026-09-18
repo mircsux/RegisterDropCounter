@@ -56,7 +56,7 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Register Drop Counter", color = RdcColor.onNavy, fontWeight = FontWeight.SemiBold)
-                    Text("v2.14.1", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    Text("v2.21.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
                 var baseOpen by remember { mutableStateOf(false) }
                 Box {
@@ -81,7 +81,16 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NavyChip("Sample") { model.loadSample() }
+                var fileOpen by remember { mutableStateOf(false) }
+                Box {
+                    NavyChip("File") { fileOpen = true }
+                    DropdownMenu(expanded = fileOpen, onDismissRequest = { fileOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Load Sample Drops") },
+                            onClick = { model.loadSample(); fileOpen = false },
+                        )
+                    }
+                }
                 NavyChip("Clear all") { confirmClearAll = true }
                 val last = model.history.firstOrNull()
                 val undoLabel = if (last?.kind == HistoryEntry.REGISTER && last.registerIndex != null)
@@ -109,7 +118,8 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
                 }
                 val fg = when {
                     model.active == i -> RdcColor.onNavy
-                    rr.hasCount -> RdcColor.cellInk
+                    rr.hasCount && rr.balanced -> RdcColor.okInk
+                    rr.hasCount && !rr.balanced -> RdcColor.badInk
                     else -> RdcColor.ink
                 }
                 Text(
@@ -302,11 +312,7 @@ private fun RegisterCard(
                     if (qty == 0) "" else DropEngine.money(qty * d.cents),
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
-                    color = RdcColor.cellInk,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier
-                        .width(72.dp)
-                        .background(RdcColor.computed)
+                    color = RdcColor.ink,
                         .padding(vertical = 6.dp),
                 )
                 Text(

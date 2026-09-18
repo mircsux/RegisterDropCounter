@@ -45,18 +45,23 @@ void rdc_set_name(rdc_sheet *s, int index, const char *raw) {
 
 bool rdc_clear_register(rdc_sheet *s, int index) {
   if (!s) return false;
-  rdc_hist_entry e;
-  if (!rdc_make_snapshot(&e, RDC_HIST_REGISTER, index, s->base, s->registers)) return false;
-  rdc_history_prepend(&s->history, &e);
+  if (!s->sample_scratch) {
+    rdc_hist_entry e;
+    if (!rdc_make_snapshot(&e, RDC_HIST_REGISTER, index, s->base, s->registers)) return false;
+    rdc_history_prepend(&s->history, &e);
+  }
   rdc_counts_zero(&s->registers[index]);
   return true;
 }
 
 bool rdc_clear_all(rdc_sheet *s) {
   if (!s) return false;
-  rdc_hist_entry e;
-  if (!rdc_make_snapshot(&e, RDC_HIST_ALL, -1, s->base, s->registers)) return false;
-  rdc_history_prepend(&s->history, &e);
+  if (!s->sample_scratch) {
+    rdc_hist_entry e;
+    if (!rdc_make_snapshot(&e, RDC_HIST_ALL, -1, s->base, s->registers)) return false;
+    rdc_history_prepend(&s->history, &e);
+  }
+  s->sample_scratch = 0;
   for (int i = 0; i < RDC_REGISTER_COUNT; ++i) rdc_counts_zero(&s->registers[i]);
   return true;
 }
@@ -66,6 +71,7 @@ bool rdc_undo_clear(rdc_sheet *s) {
   rdc_apply_undo(s->registers, &s->base, &s->history.items[0]);
   if (s->history.items[0].kind == RDC_HIST_REGISTER && s->history.items[0].register_index >= 0)
     s->active = s->history.items[0].register_index;
+  s->sample_scratch = 0;
   return true;
 }
 
@@ -119,6 +125,12 @@ int rdc_save_state_path(const rdc_sheet *s, const char *path) {
     if (w < 0) return -1;
     used += w;
   }
+  {
+    int w = snprintf(buf + used, sizeof buf - (size_t)used, "SAMPLE %d\n",
+                     s->sample_scratch ? 1 : 0);
+    if (w < 0 || (size_t)w >= sizeof buf - (size_t)used) return -1;
+    used += w;
+  }
   return write_text(path, buf);
 }
 
@@ -163,6 +175,10 @@ int rdc_load_state_path(rdc_sheet *s, const char *path) {
     }
     rdc_counts_zero(&s->registers[i]);
     for (int d = 0; d < RDC_DENOM_COUNT && d < nv; ++d) s->registers[i].n[d] = vals[d];
+  }
+  s->sample_scratch = 0;
+  if (p && strncmp(p, "SAMPLE", 6) == 0) {
+    s->sample_scratch = (int)strtol(p + 6, RDC_NULL, 10) != 0;
   }
   free(text);
   return 0;
@@ -384,6 +400,12 @@ int rdc_drop_slip_text(const rdc_sheet *s, int index, char *buf, size_t n) {
   if (rdc_slip_kv(buf, n, &used, "Bag #: ", s->bag[0] ? s->bag : "________") != 0) return -1;
   if (rdc_slip_kv(buf, n, &used, "Initials: ", s->initials[0] ? s->initials : "________") != 0)
     return -1;
+  if (rdc_slip_add(buf, n, &used, rule) != 0) return -1;
+
+  rdc_total_row(row, "DROP TOTAL", drop);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
+  rdc_total_row(row, "LEFT IN DRAWER", left);
+  if (rdc_slip_add(buf, n, &used, row) != 0) return -1;
   if (rdc_slip_add(buf, n, &used, rule) != 0) return -1;
 
   rdc_item_row(row, "ITEM", "QTY", "AMOUNT");

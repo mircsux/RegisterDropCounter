@@ -188,7 +188,7 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
             Text("Dark mode", color = RdcColor.ink, modifier = Modifier.weight(1f))
             Text(if (model.darkMode) "On" else "Off", color = RdcColor.navyFg, fontWeight = FontWeight.SemiBold)
         }
-        Text("Navy headers and yellow count cells stay. The sheet goes dark.", color = RdcColor.muted, fontSize = 13.sp)
+        Text("Count cells stay gold so you can still find them. The rest of the sheet goes dark.", color = RdcColor.muted, fontSize = 13.sp)
         Spacer(Modifier.height(16.dp))
         Text("Register base", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
         Row {
@@ -205,10 +205,6 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
                     fontSize = 13.sp,
                 )
             }
-        }
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { model.loadSample() }, colors = ButtonDefaults.buttonColors(containerColor = RdcColor.navy)) {
-            Text("Load sample drawers")
         }
         Spacer(Modifier.height(20.dp))
         Text("Cash log", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
@@ -255,7 +251,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.14.1  (2026-09-17)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.21.0  (2026-09-17)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
             Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
@@ -265,6 +261,13 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.21.0  Current release on web, Windows, iPhone, Android, and C23.", color = RdcColor.ink)
+            Text("v2.20.0  Sample drops do not write History snapshots.", color = RdcColor.ink)
+            Text("v2.19.0  Sample drops stay under $6,000 per till.", color = RdcColor.ink)
+            Text("v2.18.0  File > Load Sample Drops fills every till with random test counts.", color = RdcColor.ink)
+            Text("v2.17.0  Drop slip shows drop total and left in drawer at the top.", color = RdcColor.ink)
+            Text("v2.16.0  Web app — unzip and open index.html in any browser.", color = RdcColor.ink)
+            Text("v2.15.0  Dark mode polish — count and amount cells go dark.", color = RdcColor.ink)
             Text("v2.14.1  Visual Studio build — History till selection and till-name editor.", color = RdcColor.ink)
             Text("v2.14.0  Dark mode on the Options tab.", color = RdcColor.ink)
             Text("v2.13.0  Star TSC100 drop slip — 80 mm / 42-column receipt.", color = RdcColor.ink)

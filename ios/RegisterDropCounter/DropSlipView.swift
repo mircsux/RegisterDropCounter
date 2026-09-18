@@ -23,6 +23,8 @@ struct DropSlipView: View {
                     LabeledContent("Date", value: Date.now.formatted(date: .complete, time: .shortened))
                     LabeledContent("Register", value: model.names[index])
                     LabeledContent("Register base", value: DropEngine.money(model.base * 100))
+                    LabeledContent("Drop total", value: DropEngine.money(result.dropCents))
+                    LabeledContent("Left in drawer", value: DropEngine.money(result.leftCents))
                     LabeledContent("Balanced", value: result.hasCount ? (result.balanced ? "Yes" : "No - off base") : "Empty")
                 }
                 Section("Bag") {

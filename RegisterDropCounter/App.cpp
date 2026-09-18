@@ -109,6 +109,7 @@ bool gAboutLogOpen = false;
 rdc::Counts gRegs[rdc::kRegisterCount]{};
 int gBase = 400;
 int gActive = 0;
+bool gSampleScratch = false;
 bool gRefreshing = false;
 std::vector<rdc::HistoryEntry> gHistory;
 rdc::Options gOptions;
@@ -123,13 +124,15 @@ int gTabClick = -1;
 RECT gRollBox{};
 
 const COLORREF kNavy = RGB(31, 78, 121);
-const COLORREF kNavyMid = RGB(46, 117, 182);
-const COLORREF kInput = RGB(255, 244, 194);
-const COLORREF kComputed = RGB(248, 228, 212);
-const COLORREF kOk = RGB(198, 239, 206);
-const COLORREF kBad = RGB(255, 199, 206);
-const COLORREF kDropHit = RGB(214, 234, 223);
-const COLORREF kCellInk = RGB(26, 36, 46);
+COLORREF kNavyMid = RGB(46, 117, 182);
+COLORREF kInput = RGB(255, 244, 194);
+COLORREF kComputed = RGB(248, 228, 212);
+COLORREF kOk = RGB(198, 239, 206);
+COLORREF kBad = RGB(255, 199, 206);
+COLORREF kDropHit = RGB(214, 234, 223);
+COLORREF kCellInk = RGB(26, 36, 46);
+COLORREF kOkInk = RGB(0, 97, 0);
+COLORREF kBadInk = RGB(156, 0, 6);
 COLORREF kSheet = RGB(238, 241, 244);
 COLORREF kPaper = RGB(255, 255, 255);
 COLORREF kInk = RGB(26, 36, 46);
@@ -164,17 +167,35 @@ void RebuildBrushes() {
 
 void ApplyTheme() {
   if (gOptions.darkMode) {
-    kSheet = RGB(18, 24, 32);
-    kPaper = RGB(28, 36, 48);
+    kNavyMid = RGB(42, 95, 140);
+    kSheet = RGB(14, 20, 27);
+    kPaper = RGB(24, 34, 44);
     kInk = RGB(230, 238, 246);
     kNavyFg = RGB(156, 199, 236);
     kMuted = RGB(154, 171, 186);
+    kInput = RGB(74, 63, 24);
+    kComputed = RGB(36, 48, 60);
+    kOk = RGB(22, 58, 40);
+    kBad = RGB(74, 30, 36);
+    kDropHit = RGB(27, 61, 48);
+    kCellInk = RGB(255, 232, 160);
+    kOkInk = RGB(158, 235, 192);
+    kBadInk = RGB(255, 176, 184);
   } else {
+    kNavyMid = RGB(46, 117, 182);
     kSheet = RGB(238, 241, 244);
     kPaper = RGB(255, 255, 255);
     kInk = RGB(26, 36, 46);
     kNavyFg = RGB(31, 78, 121);
     kMuted = RGB(92, 107, 122);
+    kInput = RGB(255, 244, 194);
+    kComputed = RGB(248, 228, 212);
+    kOk = RGB(198, 239, 206);
+    kBad = RGB(255, 199, 206);
+    kDropHit = RGB(214, 234, 223);
+    kCellInk = RGB(26, 36, 46);
+    kOkInk = RGB(0, 97, 0);
+    kBadInk = RGB(156, 0, 6);
   }
   RebuildBrushes();
   auto paint = [](HWND w) {
@@ -357,6 +378,10 @@ bool SaveHistoryToCloud() {
 }
 
 void SnapshotBeforeClear(rdc::HistoryKind kind, int registerIndex) {
+  if (gSampleScratch) {
+    if (kind == rdc::HistAll) gSampleScratch = false;
+    return;
+  }
   rdc::HistoryEntry e;
   if (!rdc::MakeSnapshot(&e, kind, registerIndex, gBase, gRegs)) return;
   rdc::PrependHistory(&gHistory, e);
@@ -445,6 +470,7 @@ void SaveState() {
     }
     out << L"\n";
   }
+  out << L"SAMPLE " << (gSampleScratch ? 1 : 0) << L"\n";
 }
 
 bool LoadState() {
@@ -472,6 +498,14 @@ bool LoadState() {
     if (vals.size() == 14) vals.insert(vals.begin() + 9, 0);
     for (int d = 0; d < rdc::DenomCount && d < (int)vals.size(); ++d)
       gRegs[i].n[d] = vals[d];
+  }
+  gSampleScratch = false;
+  std::wstring extra;
+  if (std::getline(in, extra)) {
+    while (!extra.empty() && (extra.back() == L'\r' || extra.back() == L'\n')) extra.pop_back();
+    if (extra.rfind(L"SAMPLE", 0) == 0) {
+      gSampleScratch = extra.find(L"1") != std::wstring::npos;
+    }
   }
   if (gBase != 100 && gBase != 200 && gBase != 300 && gBase != 400 && gBase != 500)
     gBase = 400;
@@ -788,7 +822,6 @@ void ApplyMainFonts(HWND h) {
   set(IDC_TOTAL_LBL, gFontBold);
   set(IDC_BASE, gFont);
   set(IDC_BASELBL, gFont);
-  set(IDC_SAMPLE, gFont);
   set(IDC_CLEAR, gFont);
   set(IDC_UNDO, gFont);
   set(IDC_HISTORY, gFont);
@@ -870,8 +903,6 @@ void Relayout(HWND h) {
   bx += 100;
   Place(&dwp, h, IDC_BASE, bx, by - 2, 110, 220);
   bx += 118;
-  Place(&dwp, h, IDC_SAMPLE, bx, by, 100, btnH);
-  bx += 108;
   Place(&dwp, h, IDC_CLEAR, bx, by, 90, btnH);
   bx += 96;
   Place(&dwp, h, IDC_UNDO, bx, by, 92, btnH);

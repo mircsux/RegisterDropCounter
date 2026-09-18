@@ -256,6 +256,7 @@ void RestoreSelected(HWND owner) {
   if (MessageBoxW(owner, ask, L"Restore snapshot", MB_OKCANCEL | MB_ICONQUESTION) != IDOK) return;
   gBase = e.base;
   for (int r = 0; r < rdc::kRegisterCount; ++r) gRegs[r] = e.registers[r];
+  gSampleScratch = false;
   HWND combo = GetDlgItem(gMain, IDC_BASE);
   for (int b = 0; b < 5; ++b)
     if (rdc::kBaseOptions[b] == gBase) SendMessageW(combo, CB_SETCURSEL, b, 0);
@@ -427,7 +428,7 @@ const wchar_t kAboutBody[] =
     L"4. Tab, Enter, or the arrow keys move to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
     L"6. The Left total turns green when it equals the register base. Red means that drawer is still off base.\r\n"
-    L"7. Drop slip prints an 80 mm Star TSC100 receipt: date, till, drop by denom, total, bag number, and initials.\r\n"
+    L"7. Drop slip prints an 80 mm Star TSC100 receipt: date, till, drop total, left in drawer, drop by denom, bag number, and initials.\r\n"
     L"8. Undo clear brings back the last drawer you cleared, without opening History.\r\n"
     L"\r\n"
     L"The drop\r\n"
@@ -444,9 +445,30 @@ const wchar_t kAboutBody[] =
     L"Clear and Clear All save the sheet first. Undo clear brings back the last one. Open History to search by date, look at old register counts, or restore a snapshot.\r\n"
     L"\r\n"
     L"Sample\r\n"
-    L"Load sample fills the 2026-08-10 workbook example so you can check the drop math.";
+    L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.21.0  2026-09-17  Current release\r\n"
+    L"- Web, Windows, iPhone, Android, and C23 all stamp as v2.21.0.\r\n"
+    L"\r\n"
+    L"v2.20.0  2026-09-17  Sample drops stay off history\r\n"
+    L"- Load Sample Drops is for testing only. Clearing those tills does not write a History snapshot.\r\n"
+    L"\r\n"
+    L"v2.19.0  2026-09-17  Sample drop cap\r\n"
+    L"- Load Sample Drops still uses random 0-100 coins/bills and 0-10 rolls, but each till's drop stays under $6,000.\r\n"
+    L"\r\n"
+    L"v2.18.0  2026-09-17  Sample drops\r\n"
+    L"- File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls).\r\n"
+    L"\r\n"
+    L"v2.17.0  2026-09-17  Drop slip totals\r\n"
+    L"- Drop slip shows Drop total and Left in drawer at the top of the receipt, then again after the denom list.\r\n"
+    L"\r\n"
+    L"v2.16.0  2026-09-17  Web app\r\n"
+    L"- Download Web unzip and open index.html in any browser. Same drop math, dark mode, history, and Star TSC100 drop slip.\r\n"
+    L"\r\n"
+    L"v2.15.0  2026-09-17  Dark mode polish\r\n"
+    L"- Dark mode now darkens count, amount, and cash-log cells. Gold count cells stay easy to find.\r\n"
+    L"\r\n"
     L"v2.14.1  2026-09-17  Visual Studio build\r\n"
     L"- Windows project compiles in Visual Studio 2022: History till selection and the till-name editor.\r\n"
     L"\r\n"
@@ -952,6 +974,7 @@ void UndoLastClear(HWND h) {
     for (int b = 0; b < 5; ++b)
       if (rdc::kBaseOptions[b] == gBase) SendMessageW(combo, CB_SETCURSEL, b, 0);
   }
+  gSampleScratch = false;
   LoadCountsIntoEdits(h);
   SaveState();
   EnableUndoBtn(h);
@@ -1292,8 +1315,7 @@ void Layout(HWND h) {
     int idx = (int)SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)buf);
     if (b == gBase) SendMessageW(combo, CB_SETCURSEL, idx, 0);
   }
-  MakeBtn(h, IDC_SAMPLE, L"Load sample", 630, 10, 100, 26);
-  MakeBtn(h, IDC_CLEAR, L"Clear All", 738, 10, 90, 26);
+  MakeBtn(h, IDC_CLEAR, L"Clear All", 630, 10, 90, 26);
   MakeBtn(h, IDC_UNDO, L"Undo clear", 836, 10, 92, 26);
   MakeBtn(h, IDC_HISTORY, L"History", 936, 10, 80, 26);
   MakeBtn(h, IDC_OPTIONS, L"Options", 1024, 10, 80, 26);
@@ -1421,7 +1443,9 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       LoadTillNames();
       ApplyTabNames(h);
       if (gOptions.syncOneDrive) LoadHistoryFromCloud();
-      if (!LoadState()) rdc::LoadSample(gRegs);
+      if (!LoadState()) {
+        for (int i = 0; i < rdc::kRegisterCount; ++i) gRegs[i] = rdc::Counts{};
+      }
       {
         HWND combo = GetDlgItem(h, IDC_BASE);
         for (int i = 0; i < 5; ++i)
@@ -1480,7 +1504,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         SetBkMode(dc, OPAQUE);
         SetBkColor(dc, bg);
         SetTextColor(dc, (!r.hasCount) ? kMuted
-                                      : (r.balanced ? RGB(0, 97, 0) : RGB(156, 0, 6)));
+                                      : (r.balanced ? kOkInk : kBadInk));
         return (LRESULT)Brush(bg);
       }
       if (id >= IDC_DROP0 && id < IDC_DROP0 + rdc::DenomCount) {
@@ -1488,7 +1512,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         const int drop = r.drop.n[id - IDC_DROP0];
         COLORREF bg = drop > 0 ? kDropHit : kComputed;
         SetBkColor(dc, bg);
-        SetTextColor(dc, drop > 0 ? RGB(0, 97, 0) : kCellInk);
+        SetTextColor(dc, drop > 0 ? kOkInk : kInk);
         return (LRESULT)Brush(bg);
       }
       if ((id >= IDC_AMT0 && id < IDC_AMT0 + rdc::DenomCount) ||
@@ -1496,7 +1520,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           (id >= IDC_LEFT0 && id < IDC_LEFT0 + rdc::DenomCount) ||
           id == IDC_TOTAL_AMT || id == IDC_TOTAL_DROP) {
         SetBkColor(dc, kComputed);
-        SetTextColor(dc, kCellInk);
+        SetTextColor(dc, kInk);
         return (LRESULT)Brush(kComputed);
       }
       SetBkColor(dc, kSheet);
@@ -1569,9 +1593,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         RefreshComputed(h);
         SaveState();
       } else if (id == IDC_SAMPLE) {
-        rdc::LoadSample(gRegs);
-        gBase = 400;
-        SendMessageW(GetDlgItem(h, IDC_BASE), CB_SETCURSEL, 3, 0);
+        rdc::LoadSampleDrops(gRegs, gBase);
+        gSampleScratch = true;
         LoadCountsIntoEdits(h);
         SaveState();
       } else if (id == IDC_CLEAR) {
@@ -1701,9 +1724,14 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
   RegisterClassExW(&wc);
 
+  HMENU fileMenu = CreatePopupMenu();
+  AppendMenuW(fileMenu, MF_STRING, IDC_SAMPLE, L"Load Sample Drops");
+  HMENU bar = CreateMenu();
+  AppendMenuW(bar, MF_POPUP, (UINT_PTR)fileMenu, L"&File");
+
   gMain = CreateWindowExW(0, kClass, L"Register Drop Counter",
                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, 1400,
-                          820, nullptr, nullptr, inst, nullptr);
+                          820, nullptr, bar, inst, nullptr);
   wchar_t mainTitle[80];
   swprintf(mainTitle, 80, L"Register Drop Counter  %s", rdc::kAppVersion);
   SetWindowTextW(gMain, mainTitle);

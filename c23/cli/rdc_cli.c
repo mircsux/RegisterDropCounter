@@ -58,7 +58,7 @@ static void help(void) {
   puts("  bag TEXT / initials TEXT");
   puts("  tsv deposit|eod|reset");
   puts("  history [YYYY-MM-DD]");
-  puts("  sample            load the 2026-08-10 workbook drawers");
+  puts("  sample            load random sample drops (0-100 denoms, 0-10 rolls, drop under $6000)");
   puts("  help / quit");
 }
 
@@ -184,7 +184,8 @@ static int run_line(rdc_sheet *s, char *line) {
     return 0;
   }
   if (strcmp(cmd, "sample") == 0) {
-    rdc_load_sample(s->registers);
+    rdc_load_sample_drops(s->registers, s->base);
+    s->sample_scratch = 1;
     persist(s);
     print_sheet(s);
     return 0;

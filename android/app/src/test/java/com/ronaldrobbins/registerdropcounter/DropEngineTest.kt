@@ -45,6 +45,8 @@ class DropEngineTest {
         assertTrue(text.contains("DROP SLIP"))
         assertTrue(text.contains("Till: Drive-thru lane"))
         assertTrue(text.contains("DROP TOTAL"))
+        assertTrue(text.contains("LEFT IN DRAWER"))
+        assertTrue(text.indexOf("DROP TOTAL") < text.indexOf("ITEM"))
         assertEquals(42, DropEngine.RECEIPT_COLS)
         for (line in text.split("\n")) {
             assertTrue("line too wide: $line", line.length <= DropEngine.RECEIPT_COLS)

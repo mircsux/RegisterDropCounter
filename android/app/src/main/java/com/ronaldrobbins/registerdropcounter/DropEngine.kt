@@ -190,6 +190,9 @@ object DropEngine {
             add(kv("Bag #: ", bag.trim()))
             add(kv("Initials: ", initials.trim()))
             add(rule())
+            add(padR("DROP TOTAL", 29) + padL(money(r.dropCents), 13))
+            add(padR("LEFT IN DRAWER", 29) + padL(money(r.leftCents), 13))
+            add(rule())
             add(padR("ITEM", 22) + padL("QTY", 6) + " " + padL("AMOUNT", 13))
             addAll(rows)
             add(rule())
@@ -224,6 +227,40 @@ object SampleData {
         out[1] = Counts.fromList(listOf(0, 51, 18, 16, 0, 0, 0, 0, 100, 0, 2, 1, 98, 3, 5))
         out[2] = Counts.fromList(listOf(5, 63, 40, 0, 0, 0, 0, 0, 89, 0, 19, 25, 154, 2, 13))
         return out
+    }
+
+    fun randomRegisters(baseDollars: Int = 400): List<Counts> {
+        return List(DropEngine.REGISTER_COUNT) {
+            val c = Counts()
+            for (d in Denom.entries) {
+                c[d] = if (d.kind == DenomKind.Roll) (0..10).random() else (0..100).random()
+            }
+            capSampleDrop(c, baseDollars)
+        }
+    }
+
+    private const val SAMPLE_DROP_CAP_CENTS = 600_000
+
+    private fun capSampleDrop(counts: Counts, baseDollars: Int): Counts {
+        val c = counts.copyOf()
+        while (true) {
+            val drop = DropEngine.compute(c, baseDollars).dropCents
+            if (drop < SAMPLE_DROP_CAP_CENTS) return c
+            val need = drop - (SAMPLE_DROP_CAP_CENTS - 1)
+            var removed = false
+            for (d in Denom.dropOrder) {
+                if (c[d] <= 0) continue
+                var take = need / d.cents
+                if (need % d.cents != 0) take += 1
+                take = minOf(c[d], take)
+                if (take > 0) {
+                    c[d] = c[d] - take
+                    removed = true
+                    break
+                }
+            }
+            if (!removed) return c
+        }
     }
 }
 

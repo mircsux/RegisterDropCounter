@@ -199,6 +199,9 @@ enum DropEngine {
             kv("Bag #: ", bagV),
             kv("Initials: ", initV),
             rule(),
+            padR("DROP TOTAL", 29) + padL(money(result.dropCents), 13),
+            padR("LEFT IN DRAWER", 29) + padL(money(result.leftCents), 13),
+            rule(),
             padR("ITEM", 22) + padL("QTY", 6) + " " + padL("AMOUNT", 13),
         ]
         out.append(contentsOf: rows)

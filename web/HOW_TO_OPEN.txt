@@ -1,9 +1,11 @@
-Register Drop Counter  2.15.0  (2026-09-17)  -  Web (any browser)
+Register Drop Counter  2.21.0  (2026-09-17)  -  Web (any browser)
 
-1. Open web/index.html in Chrome, Edge, Safari, or Firefox.
-2. Optional: add to the phone home screen from the browser menu.
+1. Unzip this folder.
+2. Double-click index.html — it opens in your browser.
+3. Or drop the folder on any static host (GitHub Pages, Netlify, a shared drive).
 
-Same drop math as Windows, Android, iPhone, and C23: yellow counts, $2 bills,
-named tills, undo, drop slip, history, cash-log copy.
+Same drop math as Windows, iPhone, Android, and C23: yellow counts, $2 bills,
+named tills, undo, drop slip, history, cash-log copy, dark mode.
 
-Counts stay in this browser. Nothing is uploaded.
+Counts save in this browser. Drop slips print black on white for a Star TSC100.
+No install, no Node, no Visual Studio.

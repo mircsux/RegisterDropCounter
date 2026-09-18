@@ -1,85 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1f4f8a">
-  <title>Register Drop Counter</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <header>
-    <div>
-      <h1>Register Drop Counter</h1>
-      <div class="sub">Web · <span id="version"></span> · <span id="today"></span></div>
-    </div>
-    <div class="grow"></div>
-    <span id="test" class="pill">…</span>
-    <label class="field">Base
-      <select id="base">
-        <option>100</option><option>200</option><option>300</option>
-        <option selected>400</option><option>500</option>
-      </select>
-    </label>
-    <button id="dark" type="button">Dark</button>
-    <button id="about" type="button">About</button>
-  </header>
-
-  <div id="tabs"></div>
-  <main>
-    <section class="card">
-      <div class="row">
-        <h2 id="tillTitle" style="margin:0">R1</h2>
-        <button id="rename" type="button">Rename</button>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-lab">Counted</div><div class="stat-val" id="counted">$0.00</div></div>
-        <div class="stat"><div class="stat-lab">Drop</div><div class="stat-val" id="dropTot">$0.00</div></div>
-        <div class="stat"><div class="stat-lab">Left</div><div class="stat-val" id="leftTot">$0.00</div></div>
-        <div class="stat"><div class="stat-lab">Balanced</div><div class="stat-val" id="balanced">Empty</div></div>
-      </div>
-      <table>
-        <thead>
-          <tr><th style="text-align:left">Denom</th><th>Count</th><th>Drop</th><th>Left</th><th>Amount</th></tr>
-        </thead>
-        <tbody id="gridBody"></tbody>
-      </table>
-      <div class="toolbar">
-        <button class="primary" id="copyOne" type="button">Copy till (drop)</button>
-        <button id="copyLog" type="button">Copy Cash Log</button>
-        <button id="copyEod" type="button">Copy EOD</button>
-        <button id="copyReset" type="button">Copy Reset</button>
-        <button id="slip" type="button">Drop slip</button>
-        <button id="clearOne" type="button">Clear</button>
-        <button id="clearAll" type="button">Clear all</button>
-        <button id="undo" type="button">Undo clear</button>
-        <button id="sample" type="button">Sample</button>
-      </div>
-    </section>
-    <aside class="card">
-      <h2>Drop slip fields</h2>
-      <div class="row" style="margin-bottom:12px">
-        <label class="field">Bag #
-          <input id="bag" type="text" maxlength="20" autocomplete="off">
-        </label>
-        <label class="field">Initials
-          <input id="initials" type="text" maxlength="12" autocomplete="off">
-        </label>
-      </div>
-      <h2>History</h2>
-      <input id="histQ" type="text" placeholder="Search by date" style="width:100%;margin-bottom:8px">
-      <div id="histList"></div>
-      <button id="clearHist" type="button" style="margin-top:8px">Clear history</button>
-    </aside>
-  </main>
-  <div id="toast"></div>
-  <dialog id="aboutDlg">
-    <h2>About</h2>
-    <p>Same integer-cent drop math as the Windows, Android, iPhone, and C23 builds. Designed by Ronald Robbins Jr and SuperGrok.</p>
-    <p>Yellow cells are the only inputs. Drop order: $100, $50, $20, $10, $5, $2, $1, quarters, dimes, nickels, rolls, pennies. Left turns green when it equals the register base.</p>
-    <p>Counts and history stay in this browser (<code>localStorage</code>). Copy buttons write tab-separated cash-log rows.</p>
-    <form method="dialog"><button>Close</button></form>
-  </dialog>
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1f4e79" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Drop Counter" />
+    <title>Register Drop Counter</title>
+    <link rel="stylesheet" href="rdc.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="rdc.js"></script>
+  </body>
 </html>

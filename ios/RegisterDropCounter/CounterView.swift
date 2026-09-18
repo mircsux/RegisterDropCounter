@@ -60,8 +60,10 @@ struct CounterView: View {
                 .tint(.white)
             }
             HStack(spacing: 8) {
-                Button("Sample") { model.loadSample() }
-                    .buttonStyle(NavyChip())
+                Menu("File") {
+                    Button("Load Sample Drops") { model.loadSample() }
+                }
+                .buttonStyle(NavyChip())
                 Button("Clear all") { confirmClearAll = true }
                     .buttonStyle(NavyChip())
                 Button(undoLabel) { model.undoClear() }
@@ -102,7 +104,7 @@ struct CounterView: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(chipColor(i, r))
-                            .foregroundStyle(model.active == i ? Color.white : Theme.ink)
+                            .foregroundStyle(chipInk(i, r))
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                 }
@@ -118,6 +120,13 @@ struct CounterView: View {
         if r.hasCount && r.balanced { return Theme.ok }
         if r.hasCount && !r.balanced { return Theme.bad }
         return Theme.sheet
+    }
+
+    private func chipInk(_ i: Int, _ r: RegisterResult) -> Color {
+        if model.active == i { return Color.white }
+        if r.hasCount && r.balanced { return Theme.okInk }
+        if r.hasCount && !r.balanced { return Theme.badInk }
+        return Theme.ink
     }
 }
 
@@ -223,7 +232,7 @@ struct RegisterCardView: View {
                 .frame(width: 52, alignment: .trailing)
             Text(moneyOrBlank(r.counts[d] * d.cents))
                 .font(.caption.monospaced())
-                .foregroundStyle(Theme.cellInk)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 72, alignment: .trailing)
                 .padding(.vertical, 6)
                 .background(Theme.computed)

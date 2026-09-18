@@ -110,6 +110,7 @@ int main(void) {
   expect_int("slip title", strstr(slip, "DROP SLIP") ? 1 : 0, 1);
   expect_int("slip till", strstr(slip, "Till: Drive-thru lane") ? 1 : 0, 1);
   expect_int("slip total", strstr(slip, "DROP TOTAL") ? 1 : 0, 1);
+  expect_int("slip left", strstr(slip, "LEFT IN DRAWER") ? 1 : 0, 1);
   {
     int maxw = 0;
     for (char *p = slip; *p;) {

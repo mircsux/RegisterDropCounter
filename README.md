@@ -2,7 +2,7 @@
 
 A counting tool for cash drawers. Open `RegisterDropCounter.sln` in Visual Studio 2022.
 
-Version **2.14.1** (2026-09-17). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.21.0** (2026-09-17). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open in Visual Studio
 
@@ -44,6 +44,7 @@ Register base is $100 / $200 / $300 / $400 / $500. Counts save next to the .exe 
 
 ## Other builds (same drop math)
 
+- **Web** — `web/index.html` in any browser. See `web/HOW_TO_OPEN.txt`.
 - **Windows (C++ Win32)** — this folder. Open `RegisterDropCounter.sln`.
 - **Android (Kotlin)** — `android/` folder in Android Studio. See `android/HOW_TO_OPEN.txt`.
 - **iPhone (SwiftUI)** — `ios/RegisterDropCounter.xcodeproj`. See `ios/HOW_TO_OPEN.txt`.

@@ -17,6 +17,7 @@ typedef struct rdc_sheet {
   rdc_history history;
   char bag[64];
   char initials[32];
+  int sample_scratch;
 } rdc_sheet;
 
 void rdc_sheet_init(rdc_sheet *s);

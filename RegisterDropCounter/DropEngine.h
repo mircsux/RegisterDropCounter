@@ -256,6 +256,45 @@ inline std::wstring EodTsv(const std::vector<LogRow>& rows) { return DepositTsv(
 
 inline std::wstring ResetTsv(const std::vector<LogRow>& rows) { return DepositTsv(rows); }
 
+inline constexpr int kSampleDropCapCents = 600000;
+
+inline void CapSampleDrop(Counts& c, int baseDollars) {
+  for (;;) {
+    const int drop = ComputeRegister(c, baseDollars).dropCents;
+    if (drop < kSampleDropCapCents) return;
+    const int need = drop - (kSampleDropCapCents - 1);
+    bool removed = false;
+    for (int o = 0; o < DenomCount; ++o) {
+      const int d = kDropOrder[o];
+      if (c.n[d] <= 0) continue;
+      int take = need / kCents[d];
+      if (need % kCents[d]) ++take;
+      if (take > c.n[d]) take = c.n[d];
+      if (take > 0) {
+        c.n[d] -= take;
+        removed = true;
+        break;
+      }
+    }
+    if (!removed) return;
+  }
+}
+
+inline void LoadSampleDrops(Counts regs[kRegisterCount], int baseDollars = 400) {
+  static bool seeded = false;
+  if (!seeded) {
+    srand((unsigned)time(nullptr));
+    seeded = true;
+  }
+  for (int i = 0; i < kRegisterCount; ++i) {
+    for (int d = 0; d < DenomCount; ++d) {
+      const int hi = (d >= PRoll && d <= QRoll) ? 10 : 100;
+      regs[i].n[d] = rand() % (hi + 1);
+    }
+    CapSampleDrop(regs[i], baseDollars);
+  }
+}
+
 inline void LoadSample(Counts regs[kRegisterCount]) {
   for (int i = 0; i < kRegisterCount; ++i) regs[i] = Counts{};
   regs[0].n[Nickel] = 6;
@@ -382,6 +421,10 @@ inline std::wstring BuildReceiptSlip(const wchar_t* till, int baseDollars, const
   s += L"\r\n";
   s += ReceiptKv(L"Initials: ", initS);
   s += L"\r\n";
+  s += ReceiptRule();
+  s += L"\r\n";
+  s += ReceiptPadR(L"DROP TOTAL", 29) + ReceiptPadL(Money(p.dropCents), 13) + L"\r\n";
+  s += ReceiptPadR(L"LEFT IN DRAWER", 29) + ReceiptPadL(Money(p.leftCents), 13) + L"\r\n";
   s += ReceiptRule();
   s += L"\r\n";
   s += ReceiptPadR(L"ITEM", 22) + ReceiptPadL(L"QTY", 6) + L" " + ReceiptPadL(L"AMOUNT", 13);

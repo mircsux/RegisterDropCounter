@@ -12,8 +12,9 @@ final class AppModel: ObservableObject {
     @Published var bag = ""
     @Published var initials = ""
     @Published var darkMode = false
+    private var sampleScratch = false
 
-    static let version = "2.14.1"
+    static let version = "2.21.0"
     static let releaseDate = "2026-09-17"
 
     private let historyLimit = 200
@@ -47,13 +48,14 @@ final class AppModel: ObservableObject {
     }
 
     func clearRegister(_ i: Int) {
-        snapshot(kind: HistoryKind.register, index: i)
+        if !sampleScratch { snapshot(kind: HistoryKind.register, index: i) }
         registers[i] = Counts()
         persistLive()
     }
 
     func clearAll() {
-        snapshot(kind: HistoryKind.all, index: nil)
+        if !sampleScratch { snapshot(kind: HistoryKind.all, index: nil) }
+        sampleScratch = false
         registers = (0..<DropEngine.registerCount).map { _ in Counts() }
         persistLive()
     }
@@ -67,6 +69,7 @@ final class AppModel: ObservableObject {
             base = last.base
             registers = last.registers
         }
+        sampleScratch = false
         persistLive()
     }
 
@@ -74,6 +77,7 @@ final class AppModel: ObservableObject {
         guard let e = history.first(where: { $0.id == id }) else { return }
         base = e.base
         registers = e.registers
+        sampleScratch = false
         persistLive()
     }
 
@@ -83,8 +87,8 @@ final class AppModel: ObservableObject {
     }
 
     func loadSample() {
-        base = 400
-        registers = SampleData.registers
+        registers = SampleData.randomRegisters(base: base)
+        sampleScratch = true
         persistLive()
     }
 
@@ -115,6 +119,7 @@ final class AppModel: ObservableObject {
         let payload: [String: Any] = [
             "base": base,
             "registers": registers.map(\.n),
+            "sampleScratch": sampleScratch,
         ]
         UserDefaults.standard.set(payload, forKey: "rdc.live")
         try? JSONSerialization.data(withJSONObject: payload).write(to: docs().appendingPathComponent("RegisterDropCounter.state.json"))
@@ -157,6 +162,7 @@ final class AppModel: ObservableObject {
                     Counts(n: i < rows.count ? rows[i] : [])
                 }
             }
+            sampleScratch = live["sampleScratch"] as? Bool ?? false
         }
         if let data = UserDefaults.standard.data(forKey: "rdc.history"),
            let h = try? JSONDecoder().decode([HistoryEntry].self, from: data) {
@@ -175,6 +181,40 @@ enum SampleData {
         out[1] = Counts(n: [0, 51, 18, 16, 0, 0, 0, 0, 100, 0, 2, 1, 98, 3, 5])
         out[2] = Counts(n: [5, 63, 40, 0, 0, 0, 0, 0, 89, 0, 19, 25, 154, 2, 13])
         return out
+    }
+
+    static func randomRegisters(base: Int = 400) -> [Counts] {
+        (0..<DropEngine.registerCount).map { _ in
+            var c = Counts()
+            for d in Denom.allCases {
+                c[d] = d.kind == .roll ? Int.random(in: 0...10) : Int.random(in: 0...100)
+            }
+            return capSampleDrop(c, base: base)
+        }
+    }
+
+    private static let dropCapCents = 600_000
+
+    private static func capSampleDrop(_ counts: Counts, base: Int) -> Counts {
+        var c = counts
+        while true {
+            let drop = DropEngine.compute(c, baseDollars: base).dropCents
+            if drop < dropCapCents { return c }
+            let need = drop - (dropCapCents - 1)
+            var removed = false
+            for d in Denom.dropOrder {
+                if c[d] <= 0 { continue }
+                var take = need / d.cents
+                if need % d.cents != 0 { take += 1 }
+                take = min(c[d], take)
+                if take > 0 {
+                    c[d] -= take
+                    removed = true
+                    break
+                }
+            }
+            if !removed { return c }
+        }
     }
 }
 

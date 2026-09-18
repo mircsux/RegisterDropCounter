@@ -9,21 +9,42 @@ enum Theme {
         light: (31 / 255, 78 / 255, 121 / 255),
         dark: (156 / 255, 199 / 255, 236 / 255)
     )
-    static let input = Color(red: 255 / 255, green: 244 / 255, blue: 194 / 255)
-    static let computed = Color(red: 248 / 255, green: 228 / 255, blue: 212 / 255)
-    static let ok = Color(red: 198 / 255, green: 239 / 255, blue: 206 / 255)
-    static let okInk = Color(red: 20 / 255, green: 90 / 255, blue: 50 / 255)
-    static let bad = Color(red: 255 / 255, green: 199 / 255, blue: 206 / 255)
-    static let badInk = Color(red: 140 / 255, green: 30 / 255, blue: 40 / 255)
-    static let cellInk = Color(red: 26 / 255, green: 36 / 255, blue: 46 / 255)
+    static let input = adaptive(
+        light: (255 / 255, 244 / 255, 194 / 255),
+        dark: (74 / 255, 63 / 255, 24 / 255)
+    )
+    static let computed = adaptive(
+        light: (248 / 255, 228 / 255, 212 / 255),
+        dark: (36 / 255, 48 / 255, 60 / 255)
+    )
+    static let ok = adaptive(
+        light: (198 / 255, 239 / 255, 206 / 255),
+        dark: (22 / 255, 58 / 255, 40 / 255)
+    )
+    static let okInk = adaptive(
+        light: (20 / 255, 90 / 255, 50 / 255),
+        dark: (158 / 255, 235 / 255, 192 / 255)
+    )
+    static let bad = adaptive(
+        light: (255 / 255, 199 / 255, 206 / 255),
+        dark: (74 / 255, 30 / 255, 36 / 255)
+    )
+    static let badInk = adaptive(
+        light: (140 / 255, 30 / 255, 40 / 255),
+        dark: (255 / 255, 176 / 255, 184 / 255)
+    )
+    static let cellInk = adaptive(
+        light: (26 / 255, 36 / 255, 46 / 255),
+        dark: (255 / 255, 232 / 255, 160 / 255)
+    )
 
     static let sheet = adaptive(
         light: (238 / 255, 241 / 255, 244 / 255),
-        dark: (18 / 255, 24 / 255, 32 / 255)
+        dark: (14 / 255, 20 / 255, 27 / 255)
     )
     static let paper = adaptive(
         light: (1, 1, 1),
-        dark: (28 / 255, 37 / 255, 48 / 255)
+        dark: (24 / 255, 34 / 255, 44 / 255)
     )
     static let ink = adaptive(
         light: (26 / 255, 36 / 255, 46 / 255),

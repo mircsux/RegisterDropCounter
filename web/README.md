@@ -1,30 +1,39 @@
-# Register Drop Counter — web
+# Register Drop Counter — Web
 
-Browser build of the same drop math as Windows, Android, iPhone, and C23.
+A counting tool for cash drawers. Open `index.html` in any browser.
 
-Version **2.15.0** (2026-09-17). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.21.0** (2026-09-17). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open
 
-1. Open `index.html` in Chrome, Edge, Safari, or Firefox.
-2. Or serve the folder: `npx serve .` then visit the printed URL.
+1. Unzip.
+2. Double-click `index.html`.
+3. Optional: put this folder on a web host so phones can open the same counter.
 
-No build step. Counts save in this browser.
+No build step. `index.html`, `rdc.css`, and `rdc.js` are the whole app.
 
 ## Using it
 
-- Yellow **Count** cells are the only inputs.
-- Click a till tab to switch. Double-click (or Rename) to change R1–R10 names.
+- Yellow **Count** cells are the only inputs. Tab, Enter, and arrow keys move through them. On a phone, use the number pad.
+- Click a till name (defaults **R1–R10**) to rename it.
 - **Drop** is how many of each denom to pull so the drawer resets to the register base.
-- **Left** turns green when it equals the base, red when it does not.
-- Copy Cash Log / EOD / Reset copy the 10-till table as tab-separated values.
-- Clear saves a snapshot first. Undo clear and History restore old counts.
-- Drop slip opens a 42-column Star 80 mm layout for print.
+- **Left** turns green when it equals the register base.
+- Drop order: $100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies.
+- **Drop slip** prints an 80 mm Star TSC100 receipt (42 columns).
+- **Options** has Dark mode. The setting saves in this browser.
 
 ## Files
 
 | File | Role |
 | --- | --- |
-| `index.html` | Page shell |
-| `styles.css` | Layout and colors |
-| `app.js` | Drop engine, history, clipboard, slip |
+| `index.html` | Open this |
+| `rdc.js` | Integer-cent drop math + UI |
+| `rdc.css` | Light and dark sheet |
+| `HOW_TO_OPEN.txt` | Setup steps |
+
+## Other builds (same drop math)
+
+- **Windows (C++ Win32)** — `RegisterDropCounter.sln`
+- **Android (Kotlin)** — Android Studio project
+- **iPhone (SwiftUI)** — Xcode project
+- **ISO C23 console** — `RegisterDropCounter-C23.sln` or `make`

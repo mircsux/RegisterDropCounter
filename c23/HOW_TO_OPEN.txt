@@ -1,4 +1,4 @@
-Register Drop Counter  2.14.1  (2026-09-17)  -  ISO C23
+Register Drop Counter  2.21.0  (2026-09-17)  -  ISO C23
 
 This is hosted ISO C (C23 / C2x). No C++. No Windows headers in the
 drop engine. Visual Studio builds the same sources as a Console app.
