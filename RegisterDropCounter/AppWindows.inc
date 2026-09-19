@@ -1180,7 +1180,6 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_DRAWITEM:
       DrawThemedItem((DRAWITEMSTRUCT*)l);
       return TRUE;
-    }
     case WM_COMMAND: {
       int id = LOWORD(w);
       int code = HIWORD(w);
