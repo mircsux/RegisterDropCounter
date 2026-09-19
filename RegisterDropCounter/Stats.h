@@ -59,13 +59,13 @@ inline const wchar_t* DenomChartLabel(int d) {
     case One:
       return L"$1";
     case Quarter:
-      return L"25¢";
+      return L"25c";
     case Dime:
-      return L"10¢";
+      return L"10c";
     case Nickel:
-      return L"5¢";
+      return L"5c";
     case Penny:
-      return L"1¢";
+      return L"1c";
     case QRoll:
       return L"Q-roll";
     case DRoll:
@@ -245,7 +245,7 @@ inline NerdStats BuildNerdStats(const std::vector<HistoryEntry>& hist,
   if (!s.byTill.empty()) {
     const int pct = s.totalDropCents > 0 ? (int)((long long)s.byTill[0].cents * 100 / s.totalDropCents) : 0;
     wchar_t buf[160];
-    swprintf(buf, 160, L"%s is the heavy till — %d%% of the drop.", s.byTill[0].label.c_str(), pct);
+    swprintf(buf, 160, L"%s is the heavy till - %d%% of the drop.", s.byTill[0].label.c_str(), pct);
     s.insights.push_back(buf);
   }
   int topWd = 0;

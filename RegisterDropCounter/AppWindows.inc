@@ -907,7 +907,7 @@ void PaintStats(HWND h, HDC dc) {
     int iy = box.top + 26;
     for (const auto& line : stats.insights) {
       RECT lr{box.left + 12, iy, box.right - 12, iy + 20};
-      std::wstring bullet = L"• ";
+      std::wstring bullet = L"- ";
       bullet += line;
       DrawTxt(dc, lr, bullet.c_str(), kInk, gFont, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
       iy += 20;
@@ -2076,10 +2076,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   SetProcessDPIAware();
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   gInst = inst;
-  if (HMODULE ux = LoadLibraryW(L"uxtheme.dll")) {
-    auto setPref = reinterpret_cast<SetPreferredAppModeFn>(UxOrd(ux, 135));
-    if (setPref) setPref(1);
-  }
+  AllowUxDark(LoadLibraryW(L"uxtheme.dll"));
   INITCOMMONCONTROLSEX icc{sizeof(icc),
                            ICC_WIN95_CLASSES | ICC_TAB_CLASSES | ICC_LISTVIEW_CLASSES};
   InitCommonControlsEx(&icc);

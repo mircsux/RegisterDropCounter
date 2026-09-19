@@ -164,12 +164,18 @@ HBRUSH gBrSheet = nullptr;
 HBRUSH gBrPaper = nullptr;
 WNDPROC gOldHdr = nullptr;
 
-using SetPreferredAppModeFn = int(WINAPI*)(int);
-using FlushMenuThemesFn = void(WINAPI*)();
-using AllowDarkModeForWindowFn = bool(WINAPI*)(HWND, bool);
+typedef int(WINAPI* SetPreferredAppModeFn)(int);
+typedef void(WINAPI* FlushMenuThemesFn)(void);
+typedef BOOL(WINAPI* AllowDarkModeForWindowFn)(HWND, BOOL);
 
 FARPROC UxOrd(HMODULE ux, int ord) {
-  return ux ? GetProcAddress(ux, MAKEINTRESOURCEA(ord)) : nullptr;
+  if (!ux) return nullptr;
+  return GetProcAddress(ux, (LPCSTR)(ULONG_PTR)(WORD)ord);
+}
+
+void AllowUxDark(HMODULE ux) {
+  auto setPref = (SetPreferredAppModeFn)UxOrd(ux, 135);
+  if (setPref) setPref(1);
 }
 
 void RebuildBrushes() {
@@ -237,8 +243,8 @@ void ApplyTheme() {
   HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
   if (!ux) ux = LoadLibraryW(L"uxtheme.dll");
   if (ux) {
-    auto setPref = reinterpret_cast<SetPreferredAppModeFn>(UxOrd(ux, 135));
-    auto flush = reinterpret_cast<FlushMenuThemesFn>(UxOrd(ux, 136));
+    auto setPref = (SetPreferredAppModeFn)UxOrd(ux, 135);
+    auto flush = (FlushMenuThemesFn)UxOrd(ux, 136);
     if (setPref) setPref(gOptions.darkMode ? 2 : 3);
     if (flush) flush();
   }
@@ -291,8 +297,8 @@ void ApplyWinDark(HWND h) {
   if (!h || !IsWindow(h)) return;
   HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
   if (ux) {
-    auto allow = reinterpret_cast<AllowDarkModeForWindowFn>(UxOrd(ux, 133));
-    if (allow) allow(h, gOptions.darkMode);
+    auto allow = (AllowDarkModeForWindowFn)UxOrd(ux, 133);
+    if (allow) allow(h, gOptions.darkMode ? TRUE : FALSE);
   }
   BOOL on = gOptions.darkMode ? TRUE : FALSE;
   DwmSetWindowAttribute(h, 20, &on, sizeof(on));
