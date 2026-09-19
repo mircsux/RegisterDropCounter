@@ -14,7 +14,7 @@ final class AppModel: ObservableObject {
     @Published var darkMode = false
     private var sampleScratch = false
 
-    static let version = "2.30.0"
+    static let version = "2.31.0"
     static let releaseDate = "2026-09-19"
 
     private let historyLimit = 200

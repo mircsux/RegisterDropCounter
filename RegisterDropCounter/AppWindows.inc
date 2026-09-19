@@ -466,6 +466,9 @@ const wchar_t kAboutBody[] =
     L"File > Options and File > About open those windows. They are not header buttons.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.31.0  2026-09-19  Visual Studio build\r\n"
+    L"- Windows desktop app compiles again in Visual Studio 2022 after the dark-mode paint path.\r\n"
+    L"\r\n"
     L"v2.30.0  2026-09-19  Windows 10 dark mode\r\n"
     L"- Dark mode paints the title bar, buttons, till tabs, cash log, History lists, and count cells. It is a night theme, not a dimmed navy sheet.\r\n"
     L"\r\n"
