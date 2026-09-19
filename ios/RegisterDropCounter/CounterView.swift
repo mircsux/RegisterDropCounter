@@ -331,9 +331,6 @@ struct NumberPadView: View {
             focused.wrappedValue = CounterView.FocusKey(register: f.register, denom: all[i + 1])
             return
         }
-        if f.register + 1 < DropEngine.registerCount {
-            model.active = f.register + 1
-            focused.wrappedValue = CounterView.FocusKey(register: f.register + 1, denom: .penny)
-        }
+        focused.wrappedValue = CounterView.FocusKey(register: f.register, denom: .penny)
     }
 }

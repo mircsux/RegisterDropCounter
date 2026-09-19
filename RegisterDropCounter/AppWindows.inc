@@ -425,7 +425,7 @@ const wchar_t kAboutBody[] =
     L"1. Set the Register Base ($100, $200, $300, $400, or $500).\r\n"
     L"2. Open a register (R1-R10). Click the till name to rename it.\r\n"
     L"3. Type counts in the yellow cells, pennies through $100, including $2 bills.\r\n"
-    L"4. Tab, Enter, or the arrow keys move to the next field. Shift+Tab or Shift+Enter goes back.\r\n"
+    L"4. Tab, Enter, or the arrow keys move to the next field. After $100 it wraps back to pennies on the same till. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
     L"6. The Left total turns green when it equals the register base. Red means that drawer is still off base.\r\n"
     L"7. Drop slip prints an 80 mm Star TSC100 receipt: date, till, drop total, left in drawer, drop by denom, bag number, and initials.\r\n"
@@ -448,6 +448,9 @@ const wchar_t kAboutBody[] =
     L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.22.0  2026-09-18  Tab wraps on the same till\r\n"
+    L"- Tab, Enter, or arrow keys after $100 wrap back to pennies on that till. They no longer jump to the next register.\r\n"
+    L"\r\n"
     L"v2.21.0  2026-09-17  Current release\r\n"
     L"- Web, Windows, iPhone, Android, and C23 all stamp as v2.21.0.\r\n"
     L"\r\n"

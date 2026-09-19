@@ -251,16 +251,17 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.21.0  (2026-09-17)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.22.0  (2026-09-18)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
             Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
-            Text("Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells with the number pad. Amount, Drop, and Left fill in. Left turns green when it equals the base.", color = RdcColor.ink)
+            Text("Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells with the number pad. After $100, Enter wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("The drop", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.22.0  Tab after $100 wraps to pennies on the same till.", color = RdcColor.ink)
             Text("v2.21.0  Current release on web, Windows, iPhone, Android, and C23.", color = RdcColor.ink)
             Text("v2.20.0  Sample drops do not write History snapshots.", color = RdcColor.ink)
             Text("v2.19.0  Sample drops stay under $6,000 per till.", color = RdcColor.ink)

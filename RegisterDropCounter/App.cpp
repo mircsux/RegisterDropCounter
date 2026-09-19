@@ -689,30 +689,14 @@ void MoveCountFocus(HWND parent, int id, bool back) {
       FocusCount(parent, i + 1);
       return;
     }
-    if (gActive + 1 < rdc::kRegisterCount) {
-      gActive++;
-      TabCtrl_SetCurSel(GetDlgItem(parent, IDC_TABS), gActive);
-      LoadCountsIntoEdits(parent);
-      FocusCount(parent, 0);
-      return;
-    }
-    HWND next = GetDlgItem(parent, IDC_COPY_DEP);
-    if (next) SetFocus(next);
+    FocusCount(parent, 0);
     return;
   }
   if (i > 0) {
     FocusCount(parent, i - 1);
     return;
   }
-  if (gActive > 0) {
-    gActive--;
-    TabCtrl_SetCurSel(GetDlgItem(parent, IDC_TABS), gActive);
-    LoadCountsIntoEdits(parent);
-    FocusCount(parent, rdc::DenomCount - 1);
-    return;
-  }
-  HWND prev = GetDlgItem(parent, IDC_BASE);
-  if (prev) SetFocus(prev);
+  FocusCount(parent, rdc::DenomCount - 1);
 }
 
 void FocusNextTab(HWND root, bool back) {

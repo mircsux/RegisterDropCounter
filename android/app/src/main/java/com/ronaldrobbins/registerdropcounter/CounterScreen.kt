@@ -56,7 +56,7 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Register Drop Counter", color = RdcColor.onNavy, fontWeight = FontWeight.SemiBold)
-                    Text("v2.21.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    Text("v2.22.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
                 var baseOpen by remember { mutableStateOf(false) }
                 Box {
@@ -162,12 +162,7 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
             onEnter = {
                 val all = Denom.entries
                 val i = all.indexOf(focused)
-                if (i + 1 < all.size) {
-                    focused = all[i + 1]
-                } else if (model.active + 1 < DropEngine.REGISTER_COUNT) {
-                    model.setActive(model.active + 1)
-                    focused = Denom.Penny
-                }
+                focused = if (i + 1 < all.size) all[i + 1] else Denom.Penny
             },
         )
     }

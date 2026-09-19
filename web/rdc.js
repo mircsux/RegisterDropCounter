@@ -1,9 +1,9 @@
-/* Register Drop Counter 2.21.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
+/* Register Drop Counter 2.22.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
 (function () {
   "use strict";
 
-  var VERSION = "2.21.0";
-  var RELEASE = "2026-09-17";
+  var VERSION = "2.22.0";
+  var RELEASE = "2026-09-18";
   var REGISTER_COUNT = 10;
   var HISTORY_LIMIT = 200;
   var TILL_NAME_MAX = 20;
@@ -419,7 +419,7 @@
     h += '<span class="chip chip-paper">' + counted + " counted</span>";
     h += '<span class="chip chip-ok">' + balanced + " on base</span>";
     if (off) h += '<span class="chip chip-bad">' + off + " off base</span>";
-    h += '<span class="hint">Yellow cells are counts. Tab, Enter, or arrow keys move to the next field. On a phone, use the number pad.</span></div>';
+    h += '<span class="hint">Yellow cells are counts. Tab, Enter, or arrow keys move to the next field. After $100 it wraps back to pennies on this till. On a phone, use the number pad.</span></div>';
     h += '<div class="reg-chips">';
     rs.forEach(function (r, i) {
       var cls = "reg-chip";
@@ -523,9 +523,10 @@
   function aboutHtml() {
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7">Designed by Ronald Robbins Jr and SuperGrok</p><h2 style="margin:4px 0 0;font-size:24px">Register Drop Counter</h2><p style="margin:8px 0 0;opacity:.85">Version ' + VERSION + " (" + RELEASE + ")</p></header><div class='body'>" +
       '<p class="muted">Count each drawer, drop down to the register base, and copy tab-separated rows into the national cash log.</p>' +
-      '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells with the number pad. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
+      '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
       '<div class="block"><h3>The drop</h3><p>$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.</p></div>' +
       '<div class="block"><h3>Changelog</h3>' +
+      "<p>v2.22.0  Tab after $100 wraps to pennies on the same till.</p>" +
       "<p>v2.21.0  Current release on web, Windows, iPhone, Android, and C23.</p>" +
       "<p>v2.20.0  Sample drops do not write History snapshots.</p>" +
       "<p>v2.19.0  Sample drops stay under $6,000 per till.</p>" +
@@ -603,8 +604,8 @@
   function nextCount(reg, key, dir) {
     var idx = KEYS.indexOf(key);
     idx += dir;
-    if (idx >= KEYS.length) { reg = (reg + 1) % REGISTER_COUNT; idx = 0; }
-    if (idx < 0) { reg = (reg + REGISTER_COUNT - 1) % REGISTER_COUNT; idx = KEYS.length - 1; }
+    if (idx >= KEYS.length) idx = 0;
+    if (idx < 0) idx = KEYS.length - 1;
     return "c-" + reg + "-" + KEYS[idx];
   }
 
