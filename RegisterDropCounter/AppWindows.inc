@@ -889,10 +889,10 @@ void PaintStats(HWND h, HDC dc) {
     FillRound(dc, tile, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
     RECT cap{tile.left + 10, tile.top + 8, tile.right - 10, tile.top + 28};
     RECT val{tile.left + 10, tile.top + 30, tile.right - 10, tile.bottom - 8};
-    const wchar_t* nl = wcschr(tiles[i], L'\n');
+    wchar_t* nl = wcschr(tiles[i], L'\n');
     if (nl) {
-      std::wstring a(tiles[i], nl);
-      DrawTxt(dc, cap, a.c_str(), kMuted, gFont, DT_LEFT | DT_SINGLELINE);
+      *nl = 0;
+      DrawTxt(dc, cap, tiles[i], kMuted, gFont, DT_LEFT | DT_SINGLELINE);
       DrawTxt(dc, val, nl + 1, kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE);
     }
   }
