@@ -188,7 +188,7 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
             Text("Dark mode", color = RdcColor.ink, modifier = Modifier.weight(1f))
             Text(if (model.darkMode) "On" else "Off", color = RdcColor.navyFg, fontWeight = FontWeight.SemiBold)
         }
-        Text("Count cells stay gold so you can still find them. The rest of the sheet goes dark.", color = RdcColor.muted, fontSize = 13.sp)
+        Text("Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells.", color = RdcColor.muted, fontSize = 13.sp)
         Spacer(Modifier.height(16.dp))
         Text("Register base", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
         Row {
@@ -251,7 +251,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.22.0  (2026-09-18)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.29.0  (2026-09-19)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
             Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
@@ -261,6 +261,13 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.29.0  Options and About live under File.", color = RdcColor.ink)
+            Text("v2.28.0  File > Stats for Nerds on the Windows desktop app.", color = RdcColor.ink)
+            Text("v2.27.0  Current release on web, Windows, iPhone, Android, and C23.", color = RdcColor.ink)
+            Text("v2.26.0  Dark mode is a night theme: carbon, teal, and amber.", color = RdcColor.ink)
+            Text("v2.25.0  File > Stats for Nerds charts drop trends from History on the web app.", color = RdcColor.ink)
+            Text("v2.24.0  Dark mode on desktop: gold count cells and readable amount columns.", color = RdcColor.ink)
+            Text("v2.23.0  Header keeps File, Clear all, and Undo. Downloads live on About in the web app.", color = RdcColor.ink)
             Text("v2.22.0  Tab after $100 wraps to pennies on the same till.", color = RdcColor.ink)
             Text("v2.21.0  Current release on web, Windows, iPhone, Android, and C23.", color = RdcColor.ink)
             Text("v2.20.0  Sample drops do not write History snapshots.", color = RdcColor.ink)

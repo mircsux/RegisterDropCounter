@@ -445,9 +445,32 @@ const wchar_t kAboutBody[] =
     L"Clear and Clear All save the sheet first. Undo clear brings back the last one. Open History to search by date, look at old register counts, or restore a snapshot.\r\n"
     L"\r\n"
     L"Sample\r\n"
-    L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.";
+    L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.\r\n"
+    L"File > Stats for Nerds charts drop trends from History.\r\n"
+    L"File > Options and File > About open those windows. They are not header buttons.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.29.0  2026-09-19  Options and About under File\r\n"
+    L"- Options and About are File menu items. Header keeps File, Clear all, Undo, and History.\r\n"
+    L"\r\n"
+    L"v2.28.0  2026-09-19  Stats for Nerds on Windows\r\n"
+    L"- File > Stats for Nerds charts drop trends from History on the desktop app.\r\n"
+    L"\r\n"
+    L"v2.27.0  2026-09-19  Current release\r\n"
+    L"- Web, Windows, iPhone, Android, and C23 all stamp as v2.27.0.\r\n"
+    L"\r\n"
+    L"v2.26.0  2026-09-19  Night theme\r\n"
+    L"- Dark mode is its own look: carbon sheet, teal chrome, amber count cells.\r\n"
+    L"\r\n"
+    L"v2.25.0  2026-09-19  Stats for Nerds\r\n"
+    L"- File > Stats for Nerds on the web app charts drop trends from History.\r\n"
+    L"\r\n"
+    L"v2.24.0  2026-09-19  Dark mode on desktop\r\n"
+    L"- Count cells stay gold with dark numbers. Amount, drop, and left columns stay readable.\r\n"
+    L"\r\n"
+    L"v2.23.0  2026-09-19  Counting bar, downloads on About\r\n"
+    L"- Header keeps File, Clear all, and Undo. Web, Android, iPhone, Windows, and C23 downloads live on the About tab of the web app.\r\n"
+    L"\r\n"
     L"v2.22.0  2026-09-18  Tab wraps on the same till\r\n"
     L"- Tab, Enter, or arrow keys after $100 wrap back to pennies on that till. They no longer jump to the next register.\r\n"
     L"\r\n"
@@ -707,6 +730,277 @@ void ShowAbout(HWND owner) {
   UpdateWindow(gAbout);
 }
 
+constexpr wchar_t kStatsClass[] = L"RegisterDropCounterStatsWnd";
+constexpr int IDC_S_CLOSE = 9301;
+
+void DrawTxt(HDC dc, RECT r, const wchar_t* t, COLORREF c, HFONT f, UINT fmt) {
+  HFONT old = (HFONT)SelectObject(dc, f);
+  SetBkMode(dc, TRANSPARENT);
+  SetTextColor(dc, c);
+  DrawTextW(dc, t, -1, &r, fmt | DT_NOPREFIX);
+  SelectObject(dc, old);
+}
+
+void FillRound(HDC dc, RECT r, COLORREF fill, COLORREF edge) {
+  HBRUSH b = CreateSolidBrush(fill);
+  HPEN p = CreatePen(PS_SOLID, 1, edge);
+  HGDIOBJ ob = SelectObject(dc, b);
+  HGDIOBJ op = SelectObject(dc, p);
+  RoundRect(dc, r.left, r.top, r.right, r.bottom, 12, 12);
+  SelectObject(dc, ob);
+  SelectObject(dc, op);
+  DeleteObject(b);
+  DeleteObject(p);
+}
+
+void DrawBars(HDC dc, RECT box, const std::vector<rdc::ChartItem>& items, COLORREF fill) {
+  if (items.empty()) {
+    DrawTxt(dc, box, L"No data yet", kMuted, gFont, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    return;
+  }
+  int maxv = 1;
+  for (const auto& it : items)
+    if (it.cents > maxv) maxv = it.cents;
+  const int n = (int)items.size();
+  const int padL = 8, padR = 8, padB = 22, padT = 6;
+  const int innerW = (std::max)(10, box.right - box.left - padL - padR);
+  const int innerH = (std::max)(10, box.bottom - box.top - padB - padT);
+  const int slot = innerW / n;
+  const int bw = (std::max)(4, slot - 6);
+  HBRUSH b = CreateSolidBrush(fill);
+  for (int i = 0; i < n; ++i) {
+    const int bh = (int)((long long)innerH * items[i].cents / maxv);
+    RECT r;
+    r.left = box.left + padL + i * slot + (slot - bw) / 2;
+    r.right = r.left + bw;
+    r.bottom = box.bottom - padB;
+    r.top = r.bottom - bh;
+    FillRect(dc, &r, b);
+    RECT lab{r.left - 4, box.bottom - padB + 2, r.right + 4, box.bottom};
+    DrawTxt(dc, lab, items[i].label.c_str(), kMuted, gFont, DT_CENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+  }
+  DeleteObject(b);
+}
+
+void DrawLine(HDC dc, RECT box, const std::vector<rdc::ChartItem>& items, COLORREF stroke) {
+  if (items.empty()) {
+    DrawTxt(dc, box, L"No data yet", kMuted, gFont, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    return;
+  }
+  int maxv = 1;
+  for (const auto& it : items)
+    if (it.cents > maxv) maxv = it.cents;
+  const int n = (int)items.size();
+  const int padL = 10, padR = 10, padB = 22, padT = 8;
+  const int innerW = (std::max)(10, box.right - box.left - padL - padR);
+  const int innerH = (std::max)(10, box.bottom - box.top - padB - padT);
+  std::vector<POINT> pts(n);
+  for (int i = 0; i < n; ++i) {
+    const int x = box.left + padL + (n == 1 ? innerW / 2 : i * innerW / (n - 1));
+    const int y = box.top + padT + innerH - (int)((long long)innerH * items[i].cents / maxv);
+    pts[i] = {x, y};
+  }
+  HPEN pen = CreatePen(PS_SOLID, 2, stroke);
+  HGDIOBJ op = SelectObject(dc, pen);
+  Polyline(dc, pts.data(), n);
+  HBRUSH dot = CreateSolidBrush(stroke);
+  HGDIOBJ ob = SelectObject(dc, dot);
+  SelectObject(dc, GetStockObject(NULL_PEN));
+  for (int i = 0; i < n; ++i) Ellipse(dc, pts[i].x - 3, pts[i].y - 3, pts[i].x + 4, pts[i].y + 4);
+  SelectObject(dc, ob);
+  SelectObject(dc, op);
+  DeleteObject(pen);
+  DeleteObject(dot);
+  const int step = (std::max)(1, n / 6);
+  for (int i = 0; i < n; ++i) {
+    if (i != 0 && i != n - 1 && (i % step) != 0) continue;
+    RECT lab{pts[i].x - 28, box.bottom - padB + 2, pts[i].x + 28, box.bottom};
+    DrawTxt(dc, lab, items[i].label.c_str(), kMuted, gFont, DT_CENTER | DT_SINGLELINE);
+  }
+}
+
+void PaintStats(HWND h, HDC dc) {
+  RECT rc{};
+  GetClientRect(h, &rc);
+  const int W = rc.right;
+  const int H = rc.bottom;
+  FillRect(dc, &rc, Brush(kSheet));
+  RECT band{0, 0, W, 92};
+  FillRect(dc, &band, Brush(kNavy));
+  RECT t{20, 14, W - 20, 44};
+  DrawTxt(dc, t, L"Stats for Nerds", RGB(255, 255, 255), gFontBold, DT_LEFT | DT_SINGLELINE);
+  RECT sub{20, 46, W - 20, 84};
+  DrawTxt(dc, sub,
+          L"Drop is the cash pulled so each drawer resets to base. Sample fills stay out of History, so they stay off these charts.",
+          RGB(220, 240, 236), gFont, DT_LEFT | DT_WORDBREAK);
+
+  auto stats = rdc::BuildNerdStats(gHistory, gNames);
+  const int pad = 16;
+  const int closeH = 32;
+  int y = 104;
+
+  if (stats.clearCount == 0) {
+    RECT empty{pad, y, W - pad, H - pad - closeH - 16};
+    FillRound(dc, empty, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
+    InflateRect(&empty, -16, -16);
+    DrawTxt(dc, empty,
+            L"History is empty. Count a till, then Clear. Each real clear becomes a point on the charts.",
+            kMuted, gFont, DT_LEFT | DT_WORDBREAK);
+    return;
+  }
+
+  const int tileH = 70;
+  const int gap = 10;
+  const int tileW = (W - pad * 2 - gap * 3) / 4;
+  wchar_t tiles[4][80];
+  swprintf(tiles[0], 80, L"Drop in History\n%s", rdc::Money(stats.totalDropCents).c_str());
+  swprintf(tiles[1], 80, L"Clears\n%d", stats.clearCount);
+  swprintf(tiles[2], 80, L"Average drop\n%s", rdc::Money(stats.avgDropCents).c_str());
+  swprintf(tiles[3], 80, L"This week\n%s", rdc::Money(stats.weekDropCents).c_str());
+  for (int i = 0; i < 4; ++i) {
+    RECT tile{pad + i * (tileW + gap), y, pad + i * (tileW + gap) + tileW, y + tileH};
+    FillRound(dc, tile, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
+    RECT cap{tile.left + 10, tile.top + 8, tile.right - 10, tile.top + 28};
+    RECT val{tile.left + 10, tile.top + 30, tile.right - 10, tile.bottom - 8};
+    const wchar_t* nl = wcschr(tiles[i], L'\n');
+    if (nl) {
+      std::wstring a(tiles[i], nl);
+      DrawTxt(dc, cap, a.c_str(), kMuted, gFont, DT_LEFT | DT_SINGLELINE);
+      DrawTxt(dc, val, nl + 1, kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE);
+    }
+  }
+  y += tileH + 12;
+
+  if (!stats.insights.empty()) {
+    const int insH = 22 + (int)stats.insights.size() * 20;
+    RECT box{pad, y, W - pad, y + insH};
+    FillRound(dc, box, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
+    RECT hdg{box.left + 12, box.top + 6, box.right - 12, box.top + 24};
+    DrawTxt(dc, hdg, L"What the drops say", kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE);
+    int iy = box.top + 26;
+    for (const auto& line : stats.insights) {
+      RECT lr{box.left + 12, iy, box.right - 12, iy + 20};
+      std::wstring bullet = L"• ";
+      bullet += line;
+      DrawTxt(dc, lr, bullet.c_str(), kInk, gFont, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+      iy += 20;
+    }
+    y += insH + 12;
+  }
+
+  const int chartBottom = H - pad - closeH - 12;
+  const int chartH = (std::max)(80, (chartBottom - y - gap) / 2);
+  const int chartW = (W - pad * 2 - gap) / 2;
+  struct ChartBox {
+    const wchar_t* title;
+    const std::vector<rdc::ChartItem>* items;
+    bool line;
+    COLORREF color;
+  };
+  ChartBox charts[4] = {
+      {L"Drop by day", &stats.byDay, true, kNavyMid},
+      {L"Drop by till", &stats.byTill, false, kNavy},
+      {L"Weekday mix", &stats.byWeekday, false, kNavyMid},
+      {L"What you pull", &stats.byDenom, false, kInput},
+  };
+  for (int i = 0; i < 4; ++i) {
+    const int col = i % 2;
+    const int row = i / 2;
+    RECT card{pad + col * (chartW + gap), y + row * (chartH + gap),
+              pad + col * (chartW + gap) + chartW, y + row * (chartH + gap) + chartH};
+    FillRound(dc, card, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
+    RECT title{card.left + 12, card.top + 8, card.right - 12, card.top + 28};
+    DrawTxt(dc, title, charts[i].title, kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE);
+    RECT plot{card.left + 8, card.top + 30, card.right - 8, card.bottom - 8};
+    if (charts[i].line)
+      DrawLine(dc, plot, *charts[i].items, charts[i].color);
+    else
+      DrawBars(dc, plot, *charts[i].items, charts[i].color);
+  }
+}
+
+LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
+  switch (msg) {
+    case WM_CREATE:
+      MakeBtn(h, IDC_S_CLOSE, L"Close", 20, 20, 90, 28);
+      return 0;
+    case WM_ERASEBKGND:
+      return 1;
+    case WM_PAINT: {
+      PAINTSTRUCT ps;
+      HDC dc = BeginPaint(h, &ps);
+      RECT rc;
+      GetClientRect(h, &rc);
+      HDC mem = CreateCompatibleDC(dc);
+      HBITMAP bm = CreateCompatibleBitmap(dc, rc.right, rc.bottom);
+      HGDIOBJ old = SelectObject(mem, bm);
+      PaintStats(h, mem);
+      BitBlt(dc, 0, 0, rc.right, rc.bottom, mem, 0, 0, SRCCOPY);
+      SelectObject(mem, old);
+      DeleteObject(bm);
+      DeleteDC(mem);
+      EndPaint(h, &ps);
+      return 0;
+    }
+    case WM_SIZE: {
+      RECT rc;
+      GetClientRect(h, &rc);
+      HWND btn = GetDlgItem(h, IDC_S_CLOSE);
+      if (btn)
+        SetWindowPos(btn, nullptr, (rc.right - 90) / 2, rc.bottom - 16 - 28, 90, 28, SWP_NOZORDER);
+      InvalidateRect(h, nullptr, FALSE);
+      return 0;
+    }
+    case WM_COMMAND:
+      if (LOWORD(w) == IDC_S_CLOSE) DestroyWindow(h);
+      return 0;
+    case WM_GETMINMAXINFO: {
+      auto* m = (MINMAXINFO*)l;
+      m->ptMinTrackSize.x = 720;
+      m->ptMinTrackSize.y = 560;
+      return 0;
+    }
+    case WM_CLOSE:
+      DestroyWindow(h);
+      return 0;
+    case WM_DESTROY:
+      gStats = nullptr;
+      return 0;
+  }
+  return DefWindowProcW(h, msg, w, l);
+}
+
+void ShowStats(HWND owner) {
+  if (gStats && IsWindow(gStats)) {
+    InvalidateRect(gStats, nullptr, FALSE);
+    ShowWindow(gStats, SW_SHOW);
+    SetForegroundWindow(gStats);
+    return;
+  }
+  static bool registered = false;
+  if (!registered) {
+    WNDCLASSEXW wc{sizeof(wc)};
+    wc.lpfnWndProc = StatsProc;
+    wc.hInstance = gInst;
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = Brush(kSheet);
+    wc.lpszClassName = kStatsClass;
+    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    RegisterClassExW(&wc);
+    registered = true;
+  }
+  RECT rc;
+  GetWindowRect(owner, &rc);
+  gStats = CreateWindowExW(WS_EX_APPWINDOW, kStatsClass, L"Stats for Nerds",
+                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 40, rc.top + 30, 1000,
+                           740, owner, nullptr, gInst, nullptr);
+  wchar_t title[80];
+  swprintf(title, 80, L"Stats for Nerds  %s", rdc::kAppVersion);
+  SetWindowTextW(gStats, title);
+  ShowWindow(gStats, SW_SHOW);
+  UpdateWindow(gStats);
+}
+
 constexpr wchar_t kOptClass[] = L"RegisterDropCounterOptionsWnd";
 constexpr int IDC_O_TITLE = 9201;
 constexpr int IDC_O_SYNC = 9202;
@@ -867,6 +1161,7 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           std::wstring msg = SyncHistoryNow();
           SetDlgItemTextW(h, IDC_O_STATUS, msg.c_str());
           if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+          if (gStats && IsWindow(gStats)) InvalidateRect(gStats, nullptr, FALSE);
         } else {
           RefreshOptionsUi(h);
         }
@@ -898,6 +1193,7 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           swprintf(msg, 80, L"Loaded and merged %d snapshot(s).", (int)gHistory.size());
           SetDlgItemTextW(h, IDC_O_STATUS, msg);
           if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+          if (gStats && IsWindow(gStats)) InvalidateRect(gStats, nullptr, FALSE);
         } else {
           SetDlgItemTextW(h, IDC_O_STATUS, L"No history file in that OneDrive folder yet.");
         }
@@ -1321,8 +1617,6 @@ void Layout(HWND h) {
   MakeBtn(h, IDC_CLEAR, L"Clear All", 630, 10, 90, 26);
   MakeBtn(h, IDC_UNDO, L"Undo clear", 836, 10, 92, 26);
   MakeBtn(h, IDC_HISTORY, L"History", 936, 10, 80, 26);
-  MakeBtn(h, IDC_OPTIONS, L"Options", 1024, 10, 80, 26);
-  MakeBtn(h, IDC_ABOUT, L"About", 1112, 10, 72, 26);
   MakeStatic(h, IDC_TODAY, rdc::FormatSheetDate().c_str(), 1004, 14, 370, 20, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_TODAY), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
@@ -1600,6 +1894,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         gSampleScratch = true;
         LoadCountsIntoEdits(h);
         SaveState();
+      } else if (id == IDC_STATS) {
+        ShowStats(h);
       } else if (id == IDC_CLEAR) {
         ReadCountsFromEdits(h);
         if (MessageBoxW(h, L"Clear all ten registers?", L"Register Drop Counter",
@@ -1610,6 +1906,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           SaveState();
           EnableUndoBtn(h);
           if (gHist && IsWindow(gHist)) RefreshHistoryUi(gHist);
+          if (gStats && IsWindow(gStats)) InvalidateRect(gStats, nullptr, FALSE);
         }
       } else if (id == IDC_CLEAR_REG) {
         ReadCountsFromEdits(h);
@@ -1729,6 +2026,10 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
 
   HMENU fileMenu = CreatePopupMenu();
   AppendMenuW(fileMenu, MF_STRING, IDC_SAMPLE, L"Load Sample Drops");
+  AppendMenuW(fileMenu, MF_STRING, IDC_STATS, L"Stats for Nerds");
+  AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
+  AppendMenuW(fileMenu, MF_STRING, IDC_OPTIONS, L"Options");
+  AppendMenuW(fileMenu, MF_STRING, IDC_ABOUT, L"About");
   HMENU bar = CreateMenu();
   AppendMenuW(bar, MF_POPUP, (UINT_PTR)fileMenu, L"&File");
 
@@ -1760,6 +2061,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     else if (gAbout && IsWindow(gAbout) &&
              (msg.hwnd == gAbout || IsChild(gAbout, msg.hwnd)))
       root = gAbout;
+    else if (gStats && IsWindow(gStats) &&
+             (msg.hwnd == gStats || IsChild(gStats, msg.hwnd)))
+      root = gStats;
     else if (gMain && (msg.hwnd == gMain || IsChild(gMain, msg.hwnd)))
       root = gMain;
 

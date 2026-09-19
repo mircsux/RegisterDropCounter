@@ -1,4 +1,4 @@
-Register Drop Counter  2.22.0  (2026-09-18)  -  Android (Android Studio)
+Register Drop Counter  2.29.0  (2026-09-19)  -  Android (Android Studio)
 
 1. Unzip this folder.
 2. Open the folder in Android Studio (File > Open). Let Gradle sync.

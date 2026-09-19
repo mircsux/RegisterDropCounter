@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="DropEngine.h" />
     <ClInclude Include="History.h" />
+    <ClInclude Include="Stats.h" />
     <ClInclude Include="OneDrive.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="AppWindows.inc">

@@ -1,9 +1,9 @@
-/* Register Drop Counter 2.22.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
+/* Register Drop Counter 2.29.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
 (function () {
   "use strict";
 
-  var VERSION = "2.22.0";
-  var RELEASE = "2026-09-18";
+  var VERSION = "2.29.0";
+  var RELEASE = "2026-09-19";
   var REGISTER_COUNT = 10;
   var HISTORY_LIMIT = 200;
   var TILL_NAME_MAX = 20;
@@ -213,6 +213,123 @@
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
   function todayKey() { return dateKey(Date.now()); }
+
+  function dropEvents(history) {
+    var out = [];
+    (history || []).forEach(function (entry) {
+      var idxs = [];
+      if (entry.kind === "register" && entry.registerIndex != null) idxs = [entry.registerIndex];
+      else { for (var n = 0; n < REGISTER_COUNT; n++) idxs.push(n); }
+      idxs.forEach(function (i) {
+        var counts = entry.registers && entry.registers[i];
+        if (!counts) return;
+        var r = computeRegister(counts, entry.base);
+        if (!r.hasCount || r.dropCents <= 0) return;
+        out.push({ at: entry.at, registerIndex: i, dropCents: r.dropCents, drop: r.drop });
+      });
+    });
+    out.sort(function (a, b) { return a.at - b.at; });
+    return out;
+  }
+
+  function svgBars(items, color) {
+    var max = 1;
+    items.forEach(function (it) { if (it.v > max) max = it.v; });
+    var w = 640, h = 200, padL = 8, padR = 8, padB = 28, padT = 10;
+    var n = Math.max(items.length, 1);
+    var gap = 4;
+    var bw = Math.max(6, (w - padL - padR) / n - gap);
+    var s = '<svg viewBox="0 0 ' + w + " " + h + '" class="chart" role="img">';
+    items.forEach(function (it, i) {
+      var bh = ((h - padB - padT) * it.v) / max;
+      var x = padL + i * ((w - padL - padR) / n);
+      var y = h - padB - bh;
+      s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(0, bh).toFixed(1) + '" rx="3" fill="' + color + '"/>';
+      s += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (h - 8) + '" text-anchor="middle" font-size="10" fill="var(--muted)">' + escapeHtml(it.label) + "</text>";
+    });
+    return s + "</svg>";
+  }
+
+  function svgArea(items) {
+    var max = 1;
+    items.forEach(function (it) { if (it.v > max) max = it.v; });
+    var w = 640, h = 200, padB = 28, padT = 12, padX = 12;
+    var n = Math.max(items.length, 1);
+    var pts = items.map(function (it, i) {
+      var x = padX + (i * (w - padX * 2)) / Math.max(n - 1, 1);
+      var y = padT + (h - padB - padT) * (1 - it.v / max);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    });
+    var last = items.length ? padX + ((n - 1) * (w - padX * 2)) / Math.max(n - 1, 1) : padX;
+    var s = '<svg viewBox="0 0 ' + w + " " + h + '" class="chart" role="img">';
+    s += '<polyline fill="none" stroke="var(--navy-mid)" stroke-width="2" points="' + pts.join(" ") + '"/>';
+    s += '<polygon fill="var(--navy-mid)" fill-opacity="0.22" points="' + padX + "," + (h - padB) + " " + pts.join(" ") + " " + last + "," + (h - padB) + '"/>';
+    items.forEach(function (it, i) {
+      if (n > 10 && i !== 0 && i !== n - 1 && i % Math.ceil(n / 6) !== 0) return;
+      var x = padX + (i * (w - padX * 2)) / Math.max(n - 1, 1);
+      s += '<text x="' + x.toFixed(1) + '" y="' + (h - 8) + '" text-anchor="middle" font-size="10" fill="var(--muted)">' + escapeHtml(it.label) + "</text>";
+    });
+    return s + "</svg>";
+  }
+
+  function statsHtml() {
+    var events = dropEvents(state.history);
+    var h = '<article class="card panel stats-page"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7">File</p><h2 style="margin:4px 0 0;font-size:24px">Stats for Nerds</h2><p style="margin:8px 0 0;opacity:.85">Drop is the cash pulled so each drawer resets to base. Sample fills stay out of History, so they stay out of these charts.</p></header>';
+    if (!events.length) {
+      return h + '<div class="body"><p class="muted">History is empty. Count a till, then Clear. Each real clear becomes a point on the charts.</p></div></article>';
+    }
+    var total = 0;
+    var byTill = {};
+    var byDay = {};
+    var byWd = [0, 0, 0, 0, 0, 0, 0];
+    var byDenom = {};
+    events.forEach(function (e) {
+      total += e.dropCents;
+      byTill[e.registerIndex] = (byTill[e.registerIndex] || 0) + e.dropCents;
+      var k = dateKey(e.at);
+      byDay[k] = (byDay[k] || 0) + e.dropCents;
+      byWd[new Date(e.at).getDay()] += e.dropCents;
+      DENOMS.forEach(function (d) {
+        var c = e.drop[d.key] * d.cents;
+        if (c) byDenom[d.key] = (byDenom[d.key] || 0) + c;
+      });
+    });
+    var avg = Math.round(total / events.length);
+    var tillItems = Object.keys(byTill).map(function (i) {
+      return { label: state.names[Number(i)] || ("R" + (Number(i) + 1)), v: byTill[i] };
+    }).sort(function (a, b) { return b.v - a.v; });
+    var dayKeys = Object.keys(byDay).sort();
+    var dayItems = dayKeys.map(function (k) {
+      var p = k.split("-");
+      var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      return { label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }), v: byDay[k] };
+    });
+    var wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var wdItems = wd.map(function (label, i) { return { label: label, v: byWd[i] }; });
+    var denomItems = DENOMS.map(function (d) {
+      var label = d.kind === "bill" ? "$" + d.label : (d.rollLetter ? d.rollLetter + "-roll" : d.label);
+      return { label: label, v: byDenom[d.key] || 0 };
+    }).filter(function (it) { return it.v > 0; }).sort(function (a, b) { return b.v - a.v; }).slice(0, 8);
+    var top = tillItems[0];
+    var topDay = wdItems.slice().sort(function (a, b) { return b.v - a.v; })[0];
+    h += '<div class="stat-tiles"><div><span>Drop in History</span><strong>' + formatMoney(total) + "</strong></div>";
+    h += "<div><span>Clears</span><strong>" + events.length + "</strong></div>";
+    h += "<div><span>Average drop</span><strong>" + formatMoney(avg) + "</strong></div>";
+    h += "<div><span>Tills</span><strong>" + tillItems.length + "</strong></div></div>";
+    h += '<div class="body">';
+    if (top) {
+      h += '<div class="block"><h3>What the drops say</h3><ul><li>' + escapeHtml(top.label) + " is the heavy till.</li>";
+      if (topDay && topDay.v) h += "<li>" + topDay.label + " is the big day for cash pulled.</li>";
+      h += "</ul></div>";
+    }
+    h += '<div class="charts">';
+    h += '<section class="block"><h3>Drop by day</h3>' + svgArea(dayItems) + "</section>";
+    h += '<section class="block"><h3>Drop by till</h3>' + svgBars(tillItems, "var(--navy)") + "</section>";
+    h += '<section class="block"><h3>Weekday mix</h3>' + svgBars(wdItems, "var(--navy-mid)") + "</section>";
+    h += '<section class="block"><h3>What you pull</h3>' + svgBars(denomItems, "var(--input-edge)") + "</section>";
+    h += "</div></div></article>";
+    return h;
+  }
   function escapeHtml(s) {
     var map = {
       "&": "&" + "amp;",
@@ -356,6 +473,7 @@
     if (state.sheet === "options") html += optionsHtml();
     else if (state.sheet === "about") html += aboutHtml();
     else if (state.sheet === "history") html += historyHtml(rs);
+    else if (state.sheet === "stats") html += statsHtml();
     else html += counterHtml(rs, counted, balanced, off);
     html += "</div>";
     if (state.sheet === "counter") html += padHtml();
@@ -387,7 +505,7 @@
     h += '<div class="file-menu">';
     h += '<button type="button" class="btn btn-ghost" data-act="file-toggle" aria-haspopup="menu" aria-expanded="' + (state.fileOpen ? "true" : "false") + '">File</button>';
     if (state.fileOpen) {
-      h += '<div class="file-pop" role="menu"><button type="button" role="menuitem" data-act="sample">Load Sample Drops</button></div>';
+      h += '<div class="file-pop" role="menu"><button type="button" role="menuitem" data-act="sample">Load Sample Drops</button><button type="button" role="menuitem" data-act="stats">Stats for Nerds</button><div class="sep" role="separator"></div><button type="button" role="menuitem" data-act="options">Options</button><button type="button" role="menuitem" data-act="about">About</button></div>';
     }
     h += "</div>";
     if (state.confirmClear) {
@@ -408,8 +526,8 @@
       return '<button type="button" class="tab" role="tab" data-sheet="' + id + '" aria-selected="' + (state.sheet === id) + '">' + label + extra + "</button>";
     }
     return '<div class="tabs" role="tablist">' +
-      tab("counter", "Counter") + tab("history", "History") + tab("options", "Options") +
-      '<span style="flex:1"></span>' + tab("about", "About") +
+      tab("counter", "Counter") + tab("history", "History") +
+      '<span style="flex:1"></span>' +
       '<span class="stamp">' + escapeHtml(stamp()) + "</span></div>";
   }
 
@@ -512,7 +630,7 @@
   function optionsHtml() {
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7;text-transform:uppercase">Options</p><h2 style="margin:4px 0 0;font-size:24px">Options</h2></header><div class="body">' +
       '<div class="block"><h3>Appearance</h3><label class="check"><input type="checkbox" id="dark"' + (state.darkMode ? " checked" : "") + "> <span>Dark mode</span></label>" +
-      '<p class="muted">Count cells stay gold so you can still find them. The rest of the sheet goes dark. Drop slips still print black on white.</p></div>' +
+      '<p class="muted">Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells. Drop slips still print black on white.</p></div>' +
       '<div class="block"><h3>History file</h3><p class="muted">Save snapshots as RegisterDropCounter.history — the same file Windows uses for OneDrive.</p>' +
       '<div class="tools" style="border:0;padding:8px 0"><button type="button" class="btn btn-navy" data-act="hist-save">Save history file</button>' +
       '<label class="btn btn-light" style="height:32px">Load history file<input type="file" id="hist-file" accept=".history,.txt,text/plain" hidden></label></div>' +
@@ -526,6 +644,13 @@
       '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
       '<div class="block"><h3>The drop</h3><p>$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.</p></div>' +
       '<div class="block"><h3>Changelog</h3>' +
+      "<p>v2.29.0  Options and About live under File.</p>" +
+      "<p>v2.28.0  File > Stats for Nerds on the Windows desktop app.</p>" +
+      "<p>v2.27.0  Current release on web, Windows, iPhone, Android, and C23.</p>" +
+      "<p>v2.26.0  Dark mode is a night theme: carbon, teal, and amber.</p>" +
+      "<p>v2.25.0  File > Stats for Nerds charts drop trends from History.</p>" +
+      "<p>v2.24.0  Dark mode on desktop: gold count cells, readable amount columns, navy copy buttons.</p>" +
+      "<p>v2.23.0  Counting bar keeps File, Clear all, and Undo. Downloads live on About in the hosted app.</p>" +
       "<p>v2.22.0  Tab after $100 wraps to pennies on the same till.</p>" +
       "<p>v2.21.0  Current release on web, Windows, iPhone, Android, and C23.</p>" +
       "<p>v2.20.0  Sample drops do not write History snapshots.</p>" +
@@ -751,6 +876,9 @@
 
   function runAct(act, i, id) {
     if (act === "file-toggle") { state.fileOpen = !state.fileOpen; paint(); return; }
+    if (act === "stats") { state.sheet = "stats"; state.fileOpen = false; paint(); return; }
+    if (act === "options") { state.sheet = "options"; state.fileOpen = false; paint(); return; }
+    if (act === "about") { state.sheet = "about"; state.fileOpen = false; paint(); return; }
     if (act === "sample") {
       var cap = 600000;
       state.registers = emptyRegisters();

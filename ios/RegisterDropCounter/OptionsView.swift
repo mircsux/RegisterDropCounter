@@ -12,7 +12,7 @@ struct OptionsView: View {
                         get: { model.darkMode },
                         set: { model.setDarkMode($0) }
                     ))
-                    Text("Count cells stay gold so you can still find them. The rest of the sheet goes dark.")
+                    Text("Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells.")
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
                 }

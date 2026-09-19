@@ -26,6 +26,7 @@
 #include "DropEngine.h"
 #include "History.h"
 #include "OneDrive.h"
+#include "Stats.h"
 #include "Version.h"
 
 #pragma comment(lib, "comctl32.lib")
@@ -55,6 +56,7 @@ constexpr int IDC_OPTIONS = 116;
 constexpr int IDC_UNDO = 117;
 constexpr int IDC_SLIP = 118;
 constexpr int IDC_TAB_EDIT = 119;
+constexpr int IDC_STATS = 120;
 constexpr int IDC_COUNT0 = 200;
 constexpr int IDC_BADGE0 = 250;
 constexpr int IDC_AMT0 = 300;
@@ -99,6 +101,7 @@ HWND gHist = nullptr;
 HWND gSlip = nullptr;
 HWND gOpt = nullptr;
 HWND gAbout = nullptr;
+HWND gStats = nullptr;
 HFONT gFont = nullptr;
 HFONT gFontBold = nullptr;
 HFONT gMono = nullptr;
@@ -123,7 +126,7 @@ std::wstring gNames[rdc::kRegisterCount];
 int gTabClick = -1;
 RECT gRollBox{};
 
-const COLORREF kNavy = RGB(31, 78, 121);
+COLORREF kNavy = RGB(31, 78, 121);
 COLORREF kNavyMid = RGB(46, 117, 182);
 COLORREF kInput = RGB(255, 244, 194);
 COLORREF kComputed = RGB(248, 228, 212);
@@ -167,21 +170,23 @@ void RebuildBrushes() {
 
 void ApplyTheme() {
   if (gOptions.darkMode) {
-    kNavyMid = RGB(42, 95, 140);
-    kSheet = RGB(14, 20, 27);
-    kPaper = RGB(24, 34, 44);
-    kInk = RGB(230, 238, 246);
-    kNavyFg = RGB(156, 199, 236);
-    kMuted = RGB(154, 171, 186);
-    kInput = RGB(74, 63, 24);
-    kComputed = RGB(36, 48, 60);
-    kOk = RGB(22, 58, 40);
-    kBad = RGB(74, 30, 36);
-    kDropHit = RGB(27, 61, 48);
-    kCellInk = RGB(255, 232, 160);
-    kOkInk = RGB(158, 235, 192);
-    kBadInk = RGB(255, 176, 184);
+    kNavy = RGB(16, 44, 50);
+    kNavyMid = RGB(30, 90, 100);
+    kSheet = RGB(6, 8, 9);
+    kPaper = RGB(16, 23, 26);
+    kInk = RGB(231, 246, 242);
+    kNavyFg = RGB(110, 231, 212);
+    kMuted = RGB(143, 179, 174);
+    kInput = RGB(245, 197, 66);
+    kComputed = RGB(26, 39, 43);
+    kOk = RGB(13, 63, 53);
+    kBad = RGB(77, 31, 40);
+    kDropHit = RGB(21, 86, 74);
+    kCellInk = RGB(28, 20, 6);
+    kOkInk = RGB(110, 240, 200);
+    kBadInk = RGB(255, 176, 188);
   } else {
+    kNavy = RGB(31, 78, 121);
     kNavyMid = RGB(46, 117, 182);
     kSheet = RGB(238, 241, 244);
     kPaper = RGB(255, 255, 255);
@@ -206,6 +211,7 @@ void ApplyTheme() {
   paint(gSlip);
   paint(gOpt);
   paint(gAbout);
+  paint(gStats);
 }
 
 HBRUSH Brush(COLORREF c) {
@@ -892,10 +898,6 @@ void Relayout(HWND h) {
   Place(&dwp, h, IDC_UNDO, bx, by, 92, btnH);
   bx += 98;
   Place(&dwp, h, IDC_HISTORY, bx, by, 80, btnH);
-  bx += 88;
-  Place(&dwp, h, IDC_OPTIONS, bx, by, 80, btnH);
-  bx += 88;
-  Place(&dwp, h, IDC_ABOUT, bx, by, 72, btnH);
 
   Place(&dwp, h, IDC_TABS, pad, yTab, leftW - 240, tabH);
   Place(&dwp, h, IDC_SLIP, pad + leftW - 236, yTab, 76, tabH);
