@@ -971,7 +971,7 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       GetClientRect(h, &rc);
       HWND btn = GetDlgItem(h, IDC_S_CLOSE);
       if (btn)
-        SetWindowPos(btn, nullptr, (rc.right - 90) / 2, rc.bottom - 16 - 28, 90, 28, SWP_NOZORDER);
+        ::SetWindowPos(btn, nullptr, (rc.right - 90) / 2, rc.bottom - 16 - 28, 90, 28, SWP_NOZORDER);
       InvalidateRect(h, nullptr, FALSE);
       return 0;
     }
@@ -1635,7 +1635,7 @@ void StartTillEdit(HWND h, int i) {
   int th = rc.bottom - rc.top;
   if (tw < 40) tw = 40;
   if (th < 20) th = 20;
-  SetWindowPos(e, HWND_TOP, rc.left, rc.top, tw, th, SWP_SHOWWINDOW);
+  ::SetWindowPos(e, HWND_TOP, rc.left, rc.top, tw, th, SWP_SHOWWINDOW);
   SetWindowTextW(e, gNames[i].c_str());
   SetFocus(e);
   SendMessageW(e, EM_SETSEL, 0, -1);
@@ -2075,7 +2075,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   gInst = inst;
   if (HMODULE ux = LoadLibraryW(L"uxtheme.dll")) {
-    auto setPref = reinterpret_cast<int(WINAPI*)(int)>(GetProcAddress(ux, MAKEINTRESOURCEA(135)));
+    auto setPref = reinterpret_cast<SetPreferredAppModeFn>(UxOrd(ux, 135));
     if (setPref) setPref(1);
   }
   INITCOMMONCONTROLSEX icc{sizeof(icc),

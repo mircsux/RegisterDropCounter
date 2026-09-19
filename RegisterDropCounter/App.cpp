@@ -18,6 +18,9 @@
 #ifdef max
 #undef max
 #endif
+#ifdef SetWindowPos
+#undef SetWindowPos
+#endif
 #include <algorithm>
 #include <cstring>
 #include <ctime>
@@ -161,6 +164,14 @@ HBRUSH gBrSheet = nullptr;
 HBRUSH gBrPaper = nullptr;
 WNDPROC gOldHdr = nullptr;
 
+using SetPreferredAppModeFn = int(WINAPI*)(int);
+using FlushMenuThemesFn = void(WINAPI*)();
+using AllowDarkModeForWindowFn = bool(WINAPI*)(HWND, bool);
+
+FARPROC UxOrd(HMODULE ux, int ord) {
+  return ux ? GetProcAddress(ux, MAKEINTRESOURCEA(ord)) : nullptr;
+}
+
 void RebuildBrushes() {
   auto put = [](HBRUSH* slot, COLORREF c) {
     if (*slot) DeleteObject(*slot);
@@ -226,8 +237,8 @@ void ApplyTheme() {
   HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
   if (!ux) ux = LoadLibraryW(L"uxtheme.dll");
   if (ux) {
-    auto setPref = reinterpret_cast<int(WINAPI*)(int)>(GetProcAddress(ux, MAKEINTRESOURCEA(135)));
-    auto flush = reinterpret_cast<void(WINAPI*)()>(GetProcAddress(ux, MAKEINTRESOURCEA(136)));
+    auto setPref = reinterpret_cast<SetPreferredAppModeFn>(UxOrd(ux, 135));
+    auto flush = reinterpret_cast<FlushMenuThemesFn>(UxOrd(ux, 136));
     if (setPref) setPref(gOptions.darkMode ? 2 : 3);
     if (flush) flush();
   }
@@ -280,9 +291,8 @@ void ApplyWinDark(HWND h) {
   if (!h || !IsWindow(h)) return;
   HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
   if (ux) {
-    auto allow = reinterpret_cast<bool(WINAPI*)(HWND, bool)>(
-        GetProcAddress(ux, MAKEINTRESOURCEA(133)));
-    if (allow) allow(h, gOptions.darkMode != false);
+    auto allow = reinterpret_cast<AllowDarkModeForWindowFn>(UxOrd(ux, 133));
+    if (allow) allow(h, gOptions.darkMode);
   }
   BOOL on = gOptions.darkMode ? TRUE : FALSE;
   DwmSetWindowAttribute(h, 20, &on, sizeof(on));
@@ -341,7 +351,7 @@ void ThemeListView(HWND lv) {
   if (gOptions.darkMode) ex &= ~WS_EX_CLIENTEDGE;
   else ex |= WS_EX_CLIENTEDGE;
   SetWindowLongPtrW(lv, GWL_EXSTYLE, ex);
-  SetWindowPos(lv, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+  ::SetWindowPos(lv, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
   HWND hdr = ListView_GetHeader(lv);
   if (hdr) {
     Untheme(hdr);
@@ -470,7 +480,6 @@ LRESULT LvCustomDraw(NMLVCUSTOMDRAW* cd) {
     return CDRF_NEWFONT;
   }
   return CDRF_DODEFAULT;
-}
 }
 
 std::wstring StatePath() {
