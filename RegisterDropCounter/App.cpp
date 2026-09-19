@@ -10,6 +10,8 @@
 #include <commdlg.h>
 #include <shlobj.h>
 #include <objbase.h>
+#include <dwmapi.h>
+#include <uxtheme.h>
 #ifdef min
 #undef min
 #endif
@@ -30,6 +32,8 @@
 #include "Version.h"
 
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "uxtheme.lib")
 #pragma comment(linker, \
                 "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' \
 version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -128,6 +132,8 @@ RECT gRollBox{};
 
 COLORREF kNavy = RGB(31, 78, 121);
 COLORREF kNavyMid = RGB(46, 117, 182);
+COLORREF kNavyDeep = RGB(22, 58, 95);
+COLORREF kOnNavy = RGB(247, 251, 255);
 COLORREF kInput = RGB(255, 244, 194);
 COLORREF kComputed = RGB(248, 228, 212);
 COLORREF kOk = RGB(198, 239, 206);
@@ -141,9 +147,11 @@ COLORREF kPaper = RGB(255, 255, 255);
 COLORREF kInk = RGB(26, 36, 46);
 COLORREF kNavyFg = RGB(31, 78, 121);
 COLORREF kMuted = RGB(92, 107, 122);
+COLORREF kGrid = RGB(197, 208, 219);
 
 HBRUSH gBrNavy = nullptr;
 HBRUSH gBrMid = nullptr;
+HBRUSH gBrDeep = nullptr;
 HBRUSH gBrIn = nullptr;
 HBRUSH gBrPeach = nullptr;
 HBRUSH gBrOk = nullptr;
@@ -151,6 +159,7 @@ HBRUSH gBrBad = nullptr;
 HBRUSH gBrHit = nullptr;
 HBRUSH gBrSheet = nullptr;
 HBRUSH gBrPaper = nullptr;
+WNDPROC gOldHdr = nullptr;
 
 void RebuildBrushes() {
   auto put = [](HBRUSH* slot, COLORREF c) {
@@ -159,6 +168,7 @@ void RebuildBrushes() {
   };
   put(&gBrNavy, kNavy);
   put(&gBrMid, kNavyMid);
+  put(&gBrDeep, kNavyDeep);
   put(&gBrIn, kInput);
   put(&gBrPeach, kComputed);
   put(&gBrOk, kOk);
@@ -168,15 +178,22 @@ void RebuildBrushes() {
   put(&gBrPaper, kPaper);
 }
 
+void ApplyWinDark(HWND h);
+void ThemeListView(HWND lv);
+void ThemeChildEdits(HWND parent);
+
 void ApplyTheme() {
   if (gOptions.darkMode) {
     kNavy = RGB(16, 44, 50);
     kNavyMid = RGB(30, 90, 100);
+    kNavyDeep = RGB(22, 62, 70);
+    kOnNavy = RGB(231, 246, 242);
     kSheet = RGB(6, 8, 9);
     kPaper = RGB(16, 23, 26);
     kInk = RGB(231, 246, 242);
     kNavyFg = RGB(110, 231, 212);
     kMuted = RGB(143, 179, 174);
+    kGrid = RGB(44, 69, 75);
     kInput = RGB(245, 197, 66);
     kComputed = RGB(26, 39, 43);
     kOk = RGB(13, 63, 53);
@@ -188,11 +205,14 @@ void ApplyTheme() {
   } else {
     kNavy = RGB(31, 78, 121);
     kNavyMid = RGB(46, 117, 182);
+    kNavyDeep = RGB(22, 58, 95);
+    kOnNavy = RGB(247, 251, 255);
     kSheet = RGB(238, 241, 244);
     kPaper = RGB(255, 255, 255);
     kInk = RGB(26, 36, 46);
     kNavyFg = RGB(31, 78, 121);
     kMuted = RGB(92, 107, 122);
+    kGrid = RGB(197, 208, 219);
     kInput = RGB(255, 244, 194);
     kComputed = RGB(248, 228, 212);
     kOk = RGB(198, 239, 206);
@@ -203,8 +223,21 @@ void ApplyTheme() {
     kBadInk = RGB(156, 0, 6);
   }
   RebuildBrushes();
+  HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
+  if (!ux) ux = LoadLibraryW(L"uxtheme.dll");
+  if (ux) {
+    auto setPref = reinterpret_cast<int(WINAPI*)(int)>(GetProcAddress(ux, MAKEINTRESOURCEA(135)));
+    auto flush = reinterpret_cast<void(WINAPI*)()>(GetProcAddress(ux, MAKEINTRESOURCEA(136)));
+    if (setPref) setPref(gOptions.darkMode ? 2 : 3);
+    if (flush) flush();
+  }
   auto paint = [](HWND w) {
-    if (w && IsWindow(w)) InvalidateRect(w, nullptr, TRUE);
+    if (!w || !IsWindow(w)) return;
+    ApplyWinDark(w);
+    ThemeChildEdits(w);
+    InvalidateRect(w, nullptr, TRUE);
+    RedrawWindow(w, nullptr, nullptr,
+                 RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_FRAME | RDW_UPDATENOW);
   };
   paint(gMain);
   paint(gHist);
@@ -212,12 +245,23 @@ void ApplyTheme() {
   paint(gOpt);
   paint(gAbout);
   paint(gStats);
+  if (gMain) {
+    ThemeListView(GetDlgItem(gMain, IDC_LV_DEP));
+    ThemeListView(GetDlgItem(gMain, IDC_LV_EOD));
+    ThemeListView(GetDlgItem(gMain, IDC_LV_RST));
+  }
+  if (gHist) {
+    ThemeListView(GetDlgItem(gHist, IDC_H_LIST));
+    ThemeListView(GetDlgItem(gHist, IDC_H_DETAIL));
+    ThemeListView(GetDlgItem(gHist, IDC_H_DENOM));
+  }
 }
 
 HBRUSH Brush(COLORREF c) {
   if (!gBrSheet) RebuildBrushes();
   if (c == kNavy) return gBrNavy;
   if (c == kNavyMid) return gBrMid;
+  if (c == kNavyDeep) return gBrDeep;
   if (c == kInput) return gBrIn;
   if (c == kComputed) return gBrPeach;
   if (c == kOk) return gBrOk;
@@ -226,6 +270,207 @@ HBRUSH Brush(COLORREF c) {
   if (c == kSheet) return gBrSheet;
   if (c == kPaper) return gBrPaper;
   return gBrPaper;
+}
+
+void Untheme(HWND w) {
+  if (w && IsWindow(w)) SetWindowTheme(w, L"", L"");
+}
+
+void ApplyWinDark(HWND h) {
+  if (!h || !IsWindow(h)) return;
+  HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
+  if (ux) {
+    auto allow = reinterpret_cast<bool(WINAPI*)(HWND, bool)>(
+        GetProcAddress(ux, MAKEINTRESOURCEA(133)));
+    if (allow) allow(h, gOptions.darkMode != false);
+  }
+  BOOL on = gOptions.darkMode ? TRUE : FALSE;
+  DwmSetWindowAttribute(h, 20, &on, sizeof(on));
+  DwmSetWindowAttribute(h, 19, &on, sizeof(on));
+}
+
+LRESULT CALLBACK ThemeHdrProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
+  if (msg == WM_ERASEBKGND) {
+    RECT rc;
+    GetClientRect(h, &rc);
+    FillRect((HDC)w, &rc, Brush(kNavyDeep));
+    return 1;
+  }
+  if (msg == WM_PAINT) {
+    PAINTSTRUCT ps;
+    HDC dc = BeginPaint(h, &ps);
+    RECT rc;
+    GetClientRect(h, &rc);
+    FillRect(dc, &rc, Brush(kNavyDeep));
+    const int n = Header_GetItemCount(h);
+    HFONT old = (HFONT)SelectObject(dc, gFont);
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, kOnNavy);
+    HPEN pen = CreatePen(PS_SOLID, 1, kGrid);
+    HGDIOBJ op = SelectObject(dc, pen);
+    for (int i = 0; i < n; ++i) {
+      RECT ir{};
+      Header_GetItemRect(h, i, &ir);
+      wchar_t buf[64]{};
+      HDITEMW it{};
+      it.mask = HDI_TEXT;
+      it.pszText = buf;
+      it.cchTextMax = 64;
+      Header_GetItem(h, i, &it);
+      MoveToEx(dc, ir.right - 1, ir.top + 3, nullptr);
+      LineTo(dc, ir.right - 1, ir.bottom - 3);
+      InflateRect(&ir, -6, 0);
+      DrawTextW(dc, buf, -1, &ir, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+    }
+    SelectObject(dc, op);
+    DeleteObject(pen);
+    SelectObject(dc, old);
+    EndPaint(h, &ps);
+    return 0;
+  }
+  return CallWindowProcW(gOldHdr, h, msg, w, l);
+}
+
+void ThemeListView(HWND lv) {
+  if (!lv || !IsWindow(lv)) return;
+  Untheme(lv);
+  ListView_SetBkColor(lv, kPaper);
+  ListView_SetTextBkColor(lv, kPaper);
+  ListView_SetTextColor(lv, kInk);
+  LONG_PTR ex = GetWindowLongPtrW(lv, GWL_EXSTYLE);
+  if (gOptions.darkMode) ex &= ~WS_EX_CLIENTEDGE;
+  else ex |= WS_EX_CLIENTEDGE;
+  SetWindowLongPtrW(lv, GWL_EXSTYLE, ex);
+  SetWindowPos(lv, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+  HWND hdr = ListView_GetHeader(lv);
+  if (hdr) {
+    Untheme(hdr);
+    if (!gOldHdr) gOldHdr = (WNDPROC)GetWindowLongPtrW(hdr, GWLP_WNDPROC);
+    WNDPROC cur = (WNDPROC)GetWindowLongPtrW(hdr, GWLP_WNDPROC);
+    if (cur != ThemeHdrProc)
+      SetWindowLongPtrW(hdr, GWLP_WNDPROC, (LONG_PTR)ThemeHdrProc);
+    InvalidateRect(hdr, nullptr, TRUE);
+  }
+  InvalidateRect(lv, nullptr, TRUE);
+}
+
+BOOL CALLBACK ThemeEditCb(HWND c, LPARAM) {
+  wchar_t cls[32]{};
+  GetClassNameW(c, cls, 32);
+  if (_wcsicmp(cls, L"Edit") == 0 || _wcsicmp(cls, L"ComboBox") == 0 ||
+      _wcsicmp(cls, L"Button") == 0 || _wcsicmp(cls, WC_TABCONTROLW) == 0 ||
+      _wcsicmp(cls, WC_LISTVIEWW) == 0) {
+    Untheme(c);
+  }
+  return TRUE;
+}
+
+void ThemeChildEdits(HWND parent) {
+  if (!parent) return;
+  EnumChildWindows(parent, ThemeEditCb, 0);
+}
+
+void FillRoundDc(HDC dc, RECT r, COLORREF fill, COLORREF edge) {
+  HBRUSH b = CreateSolidBrush(fill);
+  HPEN p = CreatePen(PS_SOLID, 1, edge);
+  HGDIOBJ ob = SelectObject(dc, b);
+  HGDIOBJ op = SelectObject(dc, p);
+  RoundRect(dc, r.left, r.top, r.right, r.bottom, 8, 8);
+  SelectObject(dc, ob);
+  SelectObject(dc, op);
+  DeleteObject(b);
+  DeleteObject(p);
+}
+
+bool IsNavyButton(int id) {
+  return id == IDC_CLEAR || id == IDC_UNDO || id == IDC_HISTORY;
+}
+
+void DrawThemedItem(const DRAWITEMSTRUCT* di) {
+  if (!di) return;
+  RECT r = di->rcItem;
+  const bool down = (di->itemState & ODS_SELECTED) != 0;
+  const bool dis = (di->itemState & ODS_DISABLED) != 0;
+  const bool focus = (di->itemState & ODS_FOCUS) != 0;
+
+  if (di->CtlType == ODT_BUTTON) {
+    const bool navy = IsNavyButton(di->CtlID);
+    COLORREF fill, fg, edge;
+    if (navy) {
+      fill = down ? kNavy : kNavyDeep;
+      fg = dis ? kMuted : kOnNavy;
+      edge = kNavyMid;
+    } else {
+      fill = down ? kComputed : kPaper;
+      fg = dis ? kMuted : kInk;
+      edge = kGrid;
+    }
+    FillRoundDc(di->hDC, r, fill, edge);
+    wchar_t text[128]{};
+    GetWindowTextW(di->hwndItem, text, 128);
+    SetBkMode(di->hDC, TRANSPARENT);
+    SetTextColor(di->hDC, fg);
+    HFONT old = (HFONT)SelectObject(di->hDC, gFont);
+    DrawTextW(di->hDC, text, -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SelectObject(di->hDC, old);
+    if (focus && !dis) {
+      InflateRect(&r, -3, -3);
+      DrawFocusRect(di->hDC, &r);
+    }
+    return;
+  }
+
+  if (di->CtlType == ODT_TAB) {
+    const bool sel = (di->itemState & ODS_SELECTED) != 0;
+    FillRect(di->hDC, &r, Brush(sel ? kNavyMid : kNavyDeep));
+    wchar_t buf[32]{};
+    TCITEMW it{};
+    it.mask = TCIF_TEXT;
+    it.pszText = buf;
+    it.cchTextMax = 32;
+    TabCtrl_GetItem(di->hwndItem, (int)di->itemID, &it);
+    SetBkMode(di->hDC, TRANSPARENT);
+    SetTextColor(di->hDC, sel ? kOnNavy : kMuted);
+    HFONT old = (HFONT)SelectObject(di->hDC, gFont);
+    DrawTextW(di->hDC, buf, -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SelectObject(di->hDC, old);
+    return;
+  }
+
+  if (di->CtlType == ODT_COMBOBOX) {
+    const bool editPart = (di->itemState & ODS_COMBOBOXEDIT) != 0;
+    const bool sel = (di->itemState & ODS_SELECTED) != 0;
+    COLORREF fill, fg;
+    if (editPart) {
+      fill = down ? kNavy : kNavyDeep;
+      fg = kOnNavy;
+    } else {
+      fill = sel ? kNavyMid : kPaper;
+      fg = sel ? kOnNavy : kInk;
+    }
+    FillRect(di->hDC, &r, fill == kPaper ? Brush(kPaper) : (fill == kNavyMid ? Brush(kNavyMid) : Brush(kNavyDeep)));
+    wchar_t buf[64]{};
+    if (di->itemID != (UINT)-1)
+      SendMessageW(di->hwndItem, CB_GETLBTEXT, di->itemID, (LPARAM)buf);
+    SetBkMode(di->hDC, TRANSPARENT);
+    SetTextColor(di->hDC, fg);
+    HFONT old = (HFONT)SelectObject(di->hDC, gFont);
+    RECT tr = r;
+    tr.left += 8;
+    DrawTextW(di->hDC, buf, -1, &tr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SelectObject(di->hDC, old);
+  }
+}
+
+LRESULT LvCustomDraw(NMLVCUSTOMDRAW* cd) {
+  if (cd->nmcd.dwDrawStage == CDDS_PREPAINT) return CDRF_NOTIFYITEMDRAW;
+  if (cd->nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
+    cd->clrText = kInk;
+    cd->clrTextBk = kPaper;
+    return CDRF_NEWFONT;
+  }
+  return CDRF_DODEFAULT;
+}
 }
 
 std::wstring StatePath() {
@@ -557,6 +802,7 @@ HWND MakeLv(HWND parent, int id, int x, int y, int w, int h) {
                             x, y, w, h, parent, (HMENU)(INT_PTR)id, gInst, nullptr);
   ListView_SetExtendedListViewStyle(lv, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
   SendMessageW(lv, WM_SETFONT, (WPARAM)gMono, TRUE);
+  ThemeListView(lv);
   return lv;
 }
 
@@ -741,14 +987,16 @@ HWND MakeEdit(HWND p, int id, int x, int y, int w, int h) {
                            WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_NUMBER | ES_CENTER,
                            x, y, w, h, p, (HMENU)(INT_PTR)id, gInst, nullptr);
   SendMessageW(e, WM_SETFONT, (WPARAM)gMono, TRUE);
+  Untheme(e);
   gOldEditProc = (WNDPROC)SetWindowLongPtrW(e, GWLP_WNDPROC, (LONG_PTR)EditProc);
   return e;
 }
 
 HWND MakeBtn(HWND p, int id, const wchar_t* t, int x, int y, int w, int h) {
-  HWND b = CreateWindowW(L"BUTTON", t, WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, x, y, w,
+  HWND b = CreateWindowW(L"BUTTON", t, WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW, x, y, w,
                          h, p, (HMENU)(INT_PTR)id, gInst, nullptr);
   SendMessageW(b, WM_SETFONT, (WPARAM)gFont, TRUE);
+  Untheme(b);
   return b;
 }
 
@@ -757,6 +1005,7 @@ HWND MakeEditText(HWND p, int id, int x, int y, int w, int h) {
                            WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL, x, y, w, h,
                            p, (HMENU)(INT_PTR)id, gInst, nullptr);
   SendMessageW(e, WM_SETFONT, (WPARAM)gMono, TRUE);
+  Untheme(e);
   return e;
 }
 

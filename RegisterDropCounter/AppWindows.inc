@@ -310,15 +310,29 @@ LRESULT CALLBACK HistProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       int id = GetDlgCtrlID((HWND)l);
       if (id == IDC_H_TITLE || id == IDC_H_STAMP) {
         SetBkColor(dc, kNavy);
-        SetTextColor(dc, RGB(255, 255, 255));
+        SetTextColor(dc, kOnNavy);
         return (LRESULT)Brush(kNavy);
       }
       SetBkColor(dc, kSheet);
       SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
     }
+    case WM_CTLCOLOREDIT: {
+      HDC dc = (HDC)w;
+      SetBkColor(dc, kPaper);
+      SetTextColor(dc, kInk);
+      return (LRESULT)Brush(kPaper);
+    }
+    case WM_DRAWITEM:
+      DrawThemedItem((DRAWITEMSTRUCT*)l);
+      return TRUE;
     case WM_NOTIFY: {
       auto* hdr = (NMHDR*)l;
+      if (hdr->code == NM_CUSTOMDRAW &&
+          (hdr->idFrom == IDC_H_LIST || hdr->idFrom == IDC_H_DETAIL ||
+           hdr->idFrom == IDC_H_DENOM)) {
+        return LvCustomDraw((NMLVCUSTOMDRAW*)l);
+      }
       if (hdr->idFrom == IDC_H_LIST &&
           (hdr->code == LVN_ITEMCHANGED || hdr->code == NM_CLICK || hdr->code == NM_DBLCLK)) {
         int i = HistIndexFromList(hdr->hwndFrom);
@@ -408,6 +422,8 @@ void ShowHistory(HWND owner) {
   gHist = CreateWindowExW(WS_EX_APPWINDOW, kHistClass, L"History",
                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                           rc.left + 40, rc.top + 40, 1040, 720, owner, nullptr, gInst, nullptr);
+  ApplyWinDark(gHist);
+  ThemeChildEdits(gHist);
   ShowWindow(gHist, SW_SHOW);
   UpdateWindow(gHist);
 }
@@ -450,6 +466,9 @@ const wchar_t kAboutBody[] =
     L"File > Options and File > About open those windows. They are not header buttons.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.30.0  2026-09-19  Windows 10 dark mode\r\n"
+    L"- Dark mode paints the title bar, buttons, till tabs, cash log, History lists, and count cells. It is a night theme, not a dimmed navy sheet.\r\n"
+    L"\r\n"
     L"v2.29.0  2026-09-19  Options and About under File\r\n"
     L"- Options and About are File menu items. Header keeps File, Clear all, Undo, and History.\r\n"
     L"\r\n"
@@ -638,6 +657,9 @@ LRESULT CALLBACK AboutProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SetTextColor(dc, kInk);
       return (LRESULT)Brush(kPaper);
     }
+    case WM_DRAWITEM:
+      DrawThemedItem((DRAWITEMSTRUCT*)l);
+      return TRUE;
     case WM_COMMAND:
       if (LOWORD(w) == IDC_A_CLOSE) {
         DestroyWindow(h);
@@ -726,6 +748,8 @@ void ShowAbout(HWND owner) {
   wchar_t aboutTitle[64];
   swprintf(aboutTitle, 64, L"About  %s", rdc::kAppVersion);
   SetWindowTextW(gAbout, aboutTitle);
+  ApplyWinDark(gAbout);
+  ThemeChildEdits(gAbout);
   ShowWindow(gAbout, SW_SHOW);
   UpdateWindow(gAbout);
 }
@@ -951,6 +975,9 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       InvalidateRect(h, nullptr, FALSE);
       return 0;
     }
+    case WM_DRAWITEM:
+      DrawThemedItem((DRAWITEMSTRUCT*)l);
+      return TRUE;
     case WM_COMMAND:
       if (LOWORD(w) == IDC_S_CLOSE) DestroyWindow(h);
       return 0;
@@ -997,6 +1024,7 @@ void ShowStats(HWND owner) {
   wchar_t title[80];
   swprintf(title, 80, L"Stats for Nerds  %s", rdc::kAppVersion);
   SetWindowTextW(gStats, title);
+  ApplyWinDark(gStats);
   ShowWindow(gStats, SW_SHOW);
   UpdateWindow(gStats);
 }
@@ -1092,10 +1120,12 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                                 WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 52, 400,
                                 24, h, (HMENU)(INT_PTR)IDC_O_DARK, gInst, nullptr);
       SendMessageW(dark, WM_SETFONT, (WPARAM)gFont, TRUE);
+      Untheme(dark);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 80, 400,
                                24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
       SendMessageW(chk, WM_SETFONT, (WPARAM)gFont, TRUE);
+      Untheme(chk);
       HWND help = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", kOptHelp,
                                   WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | ES_MULTILINE |
                                       ES_READONLY | ES_AUTOVSCROLL,
@@ -1128,7 +1158,7 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       int id = GetDlgCtrlID((HWND)l);
       if (id == IDC_O_TITLE) {
         SetBkColor(dc, kNavy);
-        SetTextColor(dc, RGB(255, 255, 255));
+        SetTextColor(dc, kOnNavy);
         return (LRESULT)Brush(kNavy);
       }
       SetBkColor(dc, kSheet);
@@ -1146,6 +1176,10 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SetBkColor(dc, kSheet);
       SetTextColor(dc, kInk);
       return (LRESULT)Brush(kSheet);
+    }
+    case WM_DRAWITEM:
+      DrawThemedItem((DRAWITEMSTRUCT*)l);
+      return TRUE;
     }
     case WM_COMMAND: {
       int id = LOWORD(w);
@@ -1249,6 +1283,8 @@ void ShowOptions(HWND owner) {
   gOpt = CreateWindowExW(WS_EX_APPWINDOW, kOptClass, L"Options",
                          WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 60, rc.top + 60, 680, 460,
                          owner, nullptr, gInst, nullptr);
+  ApplyWinDark(gOpt);
+  ThemeChildEdits(gOpt);
   ShowWindow(gOpt, SW_SHOW);
   UpdateWindow(gOpt);
 }
@@ -1447,7 +1483,7 @@ LRESULT CALLBACK SlipProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       int id = GetDlgCtrlID((HWND)l);
       if (id == IDC_S_TITLE) {
         SetBkColor(dc, kNavy);
-        SetTextColor(dc, RGB(255, 255, 255));
+        SetTextColor(dc, kOnNavy);
         return (LRESULT)Brush(kNavy);
       }
       SetBkColor(dc, kSheet);
@@ -1460,6 +1496,9 @@ LRESULT CALLBACK SlipProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SetTextColor(dc, kInk);
       return (LRESULT)Brush(kPaper);
     }
+    case WM_DRAWITEM:
+      DrawThemedItem((DRAWITEMSTRUCT*)l);
+      return TRUE;
     case WM_COMMAND: {
       int id = LOWORD(w);
       int code = HIWORD(w);
@@ -1548,6 +1587,8 @@ void ShowSlip(HWND owner, int reg) {
   swprintf(title, 40, L"Drop slip  R%d", gSlipReg + 1);
   gSlip = CreateWindowExW(WS_EX_APPWINDOW, kSlipClass, title, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                           rc.left + 50, rc.top + 50, 560, 470, owner, nullptr, gInst, nullptr);
+  ApplyWinDark(gSlip);
+  ThemeChildEdits(gSlip);
   ShowWindow(gSlip, SW_SHOW);
   UpdateWindow(gSlip);
 }
@@ -1605,24 +1646,31 @@ void Layout(HWND h) {
   SendMessageW(GetDlgItem(h, IDC_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
   MakeStatic(h, IDC_BASELBL, L"Register Base", 400, 14, 100, 20, SS_RIGHT);
   HWND combo = CreateWindowW(L"COMBOBOX", L"",
-                             WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 508, 10, 110,
-                             200, h, (HMENU)IDC_BASE, gInst, nullptr);
+                             WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST |
+                                 CBS_OWNERDRAWFIXED | CBS_HASSTRINGS,
+                             508, 10, 110, 200, h, (HMENU)IDC_BASE, gInst, nullptr);
   SendMessageW(combo, WM_SETFONT, (WPARAM)gFont, TRUE);
+  Untheme(combo);
   for (int b : rdc::kBaseOptions) {
     wchar_t buf[16];
     swprintf(buf, 16, L"$%d.00", b);
     int idx = (int)SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)buf);
     if (b == gBase) SendMessageW(combo, CB_SETCURSEL, idx, 0);
   }
+  SendMessageW(combo, CB_SETITEMHEIGHT, (WPARAM)-1, 22);
+  SendMessageW(combo, CB_SETITEMHEIGHT, 0, 22);
   MakeBtn(h, IDC_CLEAR, L"Clear All", 630, 10, 90, 26);
   MakeBtn(h, IDC_UNDO, L"Undo clear", 836, 10, 92, 26);
   MakeBtn(h, IDC_HISTORY, L"History", 936, 10, 80, 26);
   MakeStatic(h, IDC_TODAY, rdc::FormatSheetDate().c_str(), 1004, 14, 370, 20, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_TODAY), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
-  HWND tabs = CreateWindowExW(0, WC_TABCONTROLW, L"", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+  HWND tabs = CreateWindowExW(0, WC_TABCONTROLW, L"",
+                              WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED |
+                                  TCS_TABS | TCS_FIXEDWIDTH | TCS_FOCUSNEVER,
                               12, 48, 500, 26, h, (HMENU)IDC_TABS, gInst, nullptr);
   SendMessageW(tabs, WM_SETFONT, (WPARAM)gFont, TRUE);
+  Untheme(tabs);
   for (int i = 0; i < rdc::kRegisterCount; ++i) {
     wchar_t lab[16];
     swprintf(lab, 16, L"R%d", i + 1);
@@ -1631,6 +1679,7 @@ void Layout(HWND h) {
     it.pszText = lab;
     TabCtrl_InsertItem(tabs, i, &it);
   }
+  TabCtrl_SetItemSize(tabs, 50, 24);
   MakeBtn(h, IDC_SLIP, L"Drop slip", 520, 48, 76, 26);
   MakeBtn(h, IDC_CLEAR_REG, L"Clear", 604, 48, 64, 26);
   MakeBtn(h, IDC_COPY_R, L"Copy R1", 676, 48, 80, 26);
@@ -1767,7 +1816,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       RECT rest{0, gHeaderH, rc.right, rc.bottom};
       FillRect(dc, &rest, Brush(kSheet));
       if (gRollBox.right > gRollBox.left) {
-        HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+        HPEN pen = CreatePen(PS_SOLID, 2, kGrid);
         HGDIOBJ oldPen = SelectObject(dc, pen);
         HGDIOBJ oldBr = SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
         Rectangle(dc, gRollBox.left, gRollBox.top, gRollBox.right, gRollBox.bottom);
@@ -1782,7 +1831,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       int id = GetDlgCtrlID((HWND)l);
       if (id == IDC_TITLE || id == IDC_BASELBL || id == IDC_TODAY) {
         SetBkColor(dc, kNavy);
-        SetTextColor(dc, RGB(255, 255, 255));
+        SetTextColor(dc, kOnNavy);
         return (LRESULT)Brush(kNavy);
       }
       if (id == IDC_LOGTITLE) {
@@ -1792,7 +1841,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       }
       if (id >= IDC_HDR0 && id < IDC_HDR0 + 6) {
         SetBkColor(dc, kNavyMid);
-        SetTextColor(dc, RGB(255, 255, 255));
+        SetTextColor(dc, kOnNavy);
         return (LRESULT)Brush(kNavyMid);
       }
       if (id == IDC_TOTAL_LEFT) {
@@ -1836,8 +1885,29 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SetTextColor(dc, kCellInk);
       return (LRESULT)Brush(kInput);
     }
+    case WM_CTLCOLORLISTBOX: {
+      HDC dc = (HDC)w;
+      SetBkColor(dc, kPaper);
+      SetTextColor(dc, kInk);
+      return (LRESULT)Brush(kPaper);
+    }
+    case WM_DRAWITEM:
+      DrawThemedItem((DRAWITEMSTRUCT*)l);
+      return TRUE;
+    case WM_MEASUREITEM: {
+      auto* mi = (MEASUREITEMSTRUCT*)l;
+      if (mi->CtlType == ODT_COMBOBOX) {
+        mi->itemHeight = 22;
+        return TRUE;
+      }
+      break;
+    }
     case WM_NOTIFY: {
       auto* hdr = (NMHDR*)l;
+      if (hdr->code == NM_CUSTOMDRAW &&
+          (hdr->idFrom == IDC_LV_DEP || hdr->idFrom == IDC_LV_EOD || hdr->idFrom == IDC_LV_RST)) {
+        return LvCustomDraw((NMLVCUSTOMDRAW*)l);
+      }
       if (hdr->idFrom == IDC_TABS && hdr->code == TCN_SELCHANGE) {
         CommitTillEdit(h);
         ReadCountsFromEdits(h);
@@ -2004,6 +2074,10 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   SetProcessDPIAware();
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   gInst = inst;
+  if (HMODULE ux = LoadLibraryW(L"uxtheme.dll")) {
+    auto setPref = reinterpret_cast<int(WINAPI*)(int)>(GetProcAddress(ux, MAKEINTRESOURCEA(135)));
+    if (setPref) setPref(1);
+  }
   INITCOMMONCONTROLSEX icc{sizeof(icc),
                            ICC_WIN95_CLASSES | ICC_TAB_CLASSES | ICC_LISTVIEW_CLASSES};
   InitCommonControlsEx(&icc);

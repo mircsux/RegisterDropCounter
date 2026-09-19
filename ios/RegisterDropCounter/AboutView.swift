@@ -35,6 +35,8 @@ struct AboutView: View {
                         Text("Changelog")
                             .font(.headline)
                             .foregroundStyle(Theme.navyFg)
+                        Text("v2.30.0  Windows 10 dark mode paints title bar, buttons, tabs, and lists.")
+                            .foregroundStyle(Theme.ink)
                         Text("v2.29.0  Options and About live under File.")
                             .foregroundStyle(Theme.ink)
                         Text("v2.28.0  File > Stats for Nerds on the Windows desktop app.")
