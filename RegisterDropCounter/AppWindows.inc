@@ -171,7 +171,7 @@ void RelayoutHistory(HWND h) {
   int listH;
   int panelH;
   if (sideBySide) {
-    panelH = (std::max)(160, belowSearch * 46 / 100);
+    panelH = rdc::MaxI(160, belowSearch * 46 / 100);
     listH = belowSearch - chrome - panelH;
     if (listH < 110) {
       listH = 110;
@@ -215,7 +215,7 @@ void RelayoutHistory(HWND h) {
   Place(&dwp, h, IDC_H_CLEAR, pad + 168, yBtn, 120, btnH);
   Place(&dwp, h, IDC_H_CLOSE, pad + 296, yBtn, 80, btnH);
   const int statusX = pad + 388;
-  const int statusW = (std::max)(80, W - pad - statusX);
+  const int statusW = rdc::MaxI(80, W - pad - statusX);
   Place(&dwp, h, IDC_H_STATUS, statusX, yBtn + 4, statusW, 20);
 
   if (sideBySide) {
@@ -708,9 +708,9 @@ void RelayoutAbout(HWND h) {
   int textH;
   if (gAboutLogOpen) {
     const int remain = yClose - yText - btnH - 16;
-    textH = (std::max)(80, remain * 42 / 100);
+    textH = rdc::MaxI(80, remain * 42 / 100);
   } else {
-    textH = (std::max)(80, yClose - yText - btnH - 20);
+    textH = rdc::MaxI(80, yClose - yText - btnH - 20);
   }
   HDWP dwp = BeginDeferWindowPos(8);
   if (!dwp) return;
@@ -720,7 +720,7 @@ void RelayoutAbout(HWND h) {
   Place(&dwp, h, IDC_A_LOGBTN, pad, yText + textH + 8, 140, btnH);
   if (gAboutLogOpen)
     Place(&dwp, h, IDC_A_LOG, pad, yText + textH + 8 + btnH + 8, W - pad * 2,
-          (std::max)(60, yClose - (yText + textH + 8 + btnH + 16)));
+          rdc::MaxI(60, yClose - (yText + textH + 8 + btnH + 16)));
   Place(&dwp, h, IDC_A_CLOSE, (W - 90) / 2, yClose, 90, btnH);
   EndDeferWindowPos(dwp);
 }
@@ -790,10 +790,10 @@ void DrawBars(HDC dc, RECT box, const std::vector<rdc::ChartItem>& items, COLORR
     if (it.cents > maxv) maxv = it.cents;
   const int n = (int)items.size();
   const int padL = 8, padR = 8, padB = 22, padT = 6;
-  const int innerW = (std::max)(10, box.right - box.left - padL - padR);
-  const int innerH = (std::max)(10, box.bottom - box.top - padB - padT);
+  const int innerW = rdc::MaxI(10, box.right - box.left - padL - padR);
+  const int innerH = rdc::MaxI(10, box.bottom - box.top - padB - padT);
   const int slot = innerW / n;
-  const int bw = (std::max)(4, slot - 6);
+  const int bw = rdc::MaxI(4, slot - 6);
   HBRUSH b = CreateSolidBrush(fill);
   for (int i = 0; i < n; ++i) {
     const int bh = (int)((long long)innerH * items[i].cents / maxv);
@@ -819,8 +819,8 @@ void DrawLine(HDC dc, RECT box, const std::vector<rdc::ChartItem>& items, COLORR
     if (it.cents > maxv) maxv = it.cents;
   const int n = (int)items.size();
   const int padL = 10, padR = 10, padB = 22, padT = 8;
-  const int innerW = (std::max)(10, box.right - box.left - padL - padR);
-  const int innerH = (std::max)(10, box.bottom - box.top - padB - padT);
+  const int innerW = rdc::MaxI(10, box.right - box.left - padL - padR);
+  const int innerH = rdc::MaxI(10, box.bottom - box.top - padB - padT);
   std::vector<POINT> pts(n);
   for (int i = 0; i < n; ++i) {
     const int x = box.left + padL + (n == 1 ? innerW / 2 : i * innerW / (n - 1));
@@ -838,7 +838,7 @@ void DrawLine(HDC dc, RECT box, const std::vector<rdc::ChartItem>& items, COLORR
   SelectObject(dc, op);
   DeleteObject(pen);
   DeleteObject(dot);
-  const int step = (std::max)(1, n / 6);
+  const int step = rdc::MaxI(1, n / 6);
   for (int i = 0; i < n; ++i) {
     if (i != 0 && i != n - 1 && (i % step) != 0) continue;
     RECT lab{pts[i].x - 28, box.bottom - padB + 2, pts[i].x + 28, box.bottom};
@@ -916,7 +916,7 @@ void PaintStats(HWND h, HDC dc) {
   }
 
   const int chartBottom = H - pad - closeH - 12;
-  const int chartH = (std::max)(80, (chartBottom - y - gap) / 2);
+  const int chartH = rdc::MaxI(80, (chartBottom - y - gap) / 2);
   const int chartW = (W - pad * 2 - gap) / 2;
   struct ChartBox {
     const wchar_t* title;
@@ -1537,10 +1537,10 @@ LRESULT CALLBACK SlipProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
           Place(&dwp, h, IDC_S_TITLE, 16, 10, W - 32, 24);
           Place(&dwp, h, IDC_S_META, 16, 40, W - 32, 20);
           Place(&dwp, h, IDC_S_BAGLBL, 16, 72, 100, 22);
-          Place(&dwp, h, IDC_S_BAG, 120, 68, (std::max)(120, W / 2 - 140), 28);
+          Place(&dwp, h, IDC_S_BAG, 120, 68, rdc::MaxI(120, W / 2 - 140), 28);
           Place(&dwp, h, IDC_S_INITLBL, W / 2 + 8, 72, 70, 22);
-          Place(&dwp, h, IDC_S_INIT, W / 2 + 82, 68, (std::max)(80, W / 2 - 100), 28);
-          Place(&dwp, h, IDC_S_BODY, 16, 108, W - 32, (std::max)(80, H - 160));
+          Place(&dwp, h, IDC_S_INIT, W / 2 + 82, 68, rdc::MaxI(80, W / 2 - 100), 28);
+          Place(&dwp, h, IDC_S_BODY, 16, 108, W - 32, rdc::MaxI(80, H - 160));
           Place(&dwp, h, IDC_S_PRINT, 16, H - 44, 100, 28);
           Place(&dwp, h, IDC_S_COPY, 124, H - 44, 90, 28);
           Place(&dwp, h, IDC_S_CLOSE, W - 106, H - 44, 90, 28);

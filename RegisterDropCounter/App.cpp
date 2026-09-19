@@ -1046,7 +1046,7 @@ void SizeLvCols(HWND lv, const int* parts, int n) {
     ListView_SetColumnWidth(lv, i, cw);
     used += cw;
   }
-  ListView_SetColumnWidth(lv, n - 1, (std::max)(40, w - used));
+  ListView_SetColumnWidth(lv, n - 1, rdc::MaxI(40, w - used));
 }
 
 void RecreateFonts(int px) {
@@ -1115,23 +1115,23 @@ void Relayout(HWND h) {
   const int H = rc.bottom;
   if (W < 200 || H < 160) return;
 
-  const int pad = (std::max)(8, W / 140);
-  const int btnH = (std::max)(22, (std::min)(30, H / 26));
+  const int pad = rdc::MaxI(8, W / 140);
+  const int btnH = rdc::MaxI(22, rdc::MinI(30, H / 26));
   const bool twoLine = W < 1520;
   const int headerH = twoLine ? (btnH * 2 + 18) : (btnH + 16);
   gHeaderH = headerH;
-  const int statusH = (std::max)(20, H / 34);
-  RecreateFonts((std::max)(12, btnH * 15 / 26));
+  const int statusH = rdc::MaxI(20, H / 34);
+  RecreateFonts(rdc::MaxI(12, btnH * 15 / 26));
   ApplyMainFonts(h);
 
   int leftW = (W - pad * 3) * 47 / 100;
-  if (leftW < 430) leftW = (std::min)(430, W * 48 / 100);
-  if (leftW > W - 360) leftW = (std::max)(360, W - 360);
+  if (leftW < 430) leftW = rdc::MinI(430, W * 48 / 100);
+  if (leftW > W - 360) leftW = rdc::MaxI(360, W - 360);
   const int rightX = pad + leftW + pad;
-  const int rightW = (std::max)(280, W - rightX - pad);
+  const int rightW = rdc::MaxI(280, W - rightX - pad);
 
   const int yTab = headerH + 4;
-  const int tabH = (std::max)(24, btnH);
+  const int tabH = rdc::MaxI(24, btnH);
   const int yGrid = yTab + tabH + 6;
   const int yStatus = H - statusH - 4;
   const int gridBottom = yStatus - 6;
@@ -1149,8 +1149,8 @@ void Relayout(HWND h) {
   HDWP dwp = BeginDeferWindowPos(140);
   if (!dwp) return;
 
-  Place(&dwp, h, IDC_TITLE, pad, 6, (std::min)(260, W / 3), btnH);
-  Place(&dwp, h, IDC_TODAY, W - pad - (std::min)(280, W / 3), 6, (std::min)(280, W / 3), btnH);
+  Place(&dwp, h, IDC_TITLE, pad, 6, rdc::MinI(260, W / 3), btnH);
+  Place(&dwp, h, IDC_TODAY, W - pad - rdc::MinI(280, W / 3), 6, rdc::MinI(280, W / 3), btnH);
   int bx = twoLine ? pad : pad + 268;
   const int by = twoLine ? (btnH + 10) : 6;
   Place(&dwp, h, IDC_BASELBL, bx, by, 96, btnH);
@@ -1170,9 +1170,9 @@ void Relayout(HWND h) {
 
   const int yHdr = yGrid;
   for (int i = 0; i < 6; ++i)
-    Place(&dwp, h, IDC_HDR0 + i, colX[i], yHdr, colW[i], (std::max)(16, rowH - 4));
+    Place(&dwp, h, IDC_HDR0 + i, colX[i], yHdr, colW[i], rdc::MaxI(16, rowH - 4));
 
-  const int y0 = yHdr + (std::max)(16, rowH - 4) + 2;
+  const int y0 = yHdr + rdc::MaxI(16, rowH - 4) + 2;
   const int rollGap = 3;
   for (int i = 0; i < rdc::DenomCount; ++i) {
     int y = y0 + i * rowH;
@@ -1195,17 +1195,17 @@ void Relayout(HWND h) {
   Place(&dwp, h, IDC_TOTAL_LEFT, colX[5], ty, colW[5], rowH);
 
   const int cy = yTab;
-  const int copyW = (std::min)(118, rightW / 5);
-  Place(&dwp, h, IDC_LOGTITLE, rightX, cy, (std::max)(140, rightW - copyW * 3 - 16), 24);
+  const int copyW = rdc::MinI(118, rightW / 5);
+  Place(&dwp, h, IDC_LOGTITLE, rightX, cy, rdc::MaxI(140, rightW - copyW * 3 - 16), 24);
   Place(&dwp, h, IDC_COPY_DEP, rightX + rightW - copyW * 3 - 12, cy, copyW, 24);
   Place(&dwp, h, IDC_COPY_EOD, rightX + rightW - copyW * 2 - 6, cy, copyW, 24);
   Place(&dwp, h, IDC_COPY_RST, rightX + rightW - copyW, cy, copyW, 24);
 
   const int logTop = cy + 30;
-  const int logH = (std::max)(80, yStatus - logTop - 8);
+  const int logH = rdc::MaxI(80, yStatus - logTop - 8);
   const int block = logH / 3;
   const int capH = 20;
-  const int lvH = (std::max)(48, block - capH - 8);
+  const int lvH = rdc::MaxI(48, block - capH - 8);
 
   Place(&dwp, h, IDC_DEP_LBL, rightX, logTop, 160, capH);
   Place(&dwp, h, IDC_COPY_TOT, rightX + 170, logTop, 100, capH + 2);

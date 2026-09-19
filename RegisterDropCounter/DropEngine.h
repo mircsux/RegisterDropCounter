@@ -72,6 +72,9 @@ struct RegisterResult {
   bool hasCount = false;
 };
 
+inline int MaxI(int a, int b) { return a > b ? a : b; }
+inline int MinI(int a, int b) { return a < b ? a : b; }
+
 inline int ClampCount(int v) {
   if (v < 0) return 0;
   if (v > 99999) return 99999;
@@ -89,13 +92,13 @@ inline RegisterResult ComputeRegister(const Counts& in, int baseDollars) {
     if (r.counts.n[i] > 0) r.hasCount = true;
   }
 
-  int remaining = (std::max)(0, r.amountCents - baseCents);
+  int remaining = MaxI(0, r.amountCents - baseCents);
   for (int o = 0; o < DenomCount; ++o) {
     const int key = kDropOrder[o];
     const int cents = kCents[key];
     const int available = r.counts.n[key];
     const int need = remaining / cents;
-    const int d = (std::max)(0, (std::min)(available, need));
+    const int d = MaxI(0, MinI(available, need));
     r.drop.n[key] = d;
     r.left.n[key] = available - d;
     remaining -= d * cents;
