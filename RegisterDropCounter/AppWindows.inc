@@ -2081,12 +2081,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
                            ICC_WIN95_CLASSES | ICC_TAB_CLASSES | ICC_LISTVIEW_CLASSES};
   InitCommonControlsEx(&icc);
 
-  gFont = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY,
-                      DEFAULT_PITCH, L"Segoe UI");
-  gFontBold = CreateFontW(-16, 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0,
-                          CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-  gMono = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY,
-                      DEFAULT_PITCH, L"Consolas");
+  RecreateFonts();
 
   WNDCLASSEXW wc{sizeof(wc)};
   wc.lpfnWndProc = WndProc;

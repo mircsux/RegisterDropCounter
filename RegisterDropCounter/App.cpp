@@ -114,7 +114,8 @@ HFONT gFontBold = nullptr;
 HFONT gMono = nullptr;
 WNDPROC gOldEditProc = nullptr;
 int gHeaderH = 44;
-int gFontPx = 15;
+int gFontPx = 0;
+bool gFontDark = false;
 bool gAboutLogOpen = false;
 rdc::Counts gRegs[rdc::kRegisterCount]{};
 int gBase = 400;
@@ -198,6 +199,8 @@ void RebuildBrushes() {
 void ApplyWinDark(HWND h);
 void ThemeListView(HWND lv);
 void ThemeChildEdits(HWND parent);
+void RecreateFonts();
+void ApplyMainFonts(HWND h);
 
 void ApplyTheme() {
   if (gOptions.darkMode) {
@@ -240,6 +243,8 @@ void ApplyTheme() {
     kBadInk = RGB(156, 0, 6);
   }
   RebuildBrushes();
+  gFontPx = 0;
+  RecreateFonts();
   HMODULE ux = GetModuleHandleW(L"uxtheme.dll");
   if (!ux) ux = LoadLibraryW(L"uxtheme.dll");
   if (ux) {
@@ -262,6 +267,7 @@ void ApplyTheme() {
   paint(gOpt);
   paint(gAbout);
   paint(gStats);
+  if (gMain) ApplyMainFonts(gMain);
   if (gMain) {
     ThemeListView(GetDlgItem(gMain, IDC_LV_DEP));
     ThemeListView(GetDlgItem(gMain, IDC_LV_EOD));
@@ -1049,17 +1055,24 @@ void SizeLvCols(HWND lv, const int* parts, int n) {
   ListView_SetColumnWidth(lv, n - 1, rdc::MaxI(40, w - used));
 }
 
-void RecreateFonts(int px) {
-  if (px < 12) px = 12;
-  if (px > 22) px = 22;
-  if (px == gFontPx && gFont && gFontBold && gMono) return;
-  gFont = CreateFontW(-px, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY,
-                      DEFAULT_PITCH, L"Segoe UI");
-  gFontBold = CreateFontW(-(px + 1), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0,
-                          CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-  gMono = CreateFontW(-px, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY,
-                      DEFAULT_PITCH, L"Consolas");
-  gFontPx = px;
+void RecreateFonts() {
+  const bool dark = gOptions.darkMode;
+  if (gFont && gFontBold && gMono && gFontPx == 15 && gFontDark == dark) return;
+  const int q = dark ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
+  HFONT ui = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+                         VARIABLE_PITCH | FF_SWISS, L"Segoe UI");
+  HFONT bold = CreateFontW(-16, 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+                           VARIABLE_PITCH | FF_SWISS, L"Segoe UI");
+  HFONT mono = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+                           FIXED_PITCH | FF_MODERN, L"Consolas");
+  if (gFont) DeleteObject(gFont);
+  if (gFontBold) DeleteObject(gFontBold);
+  if (gMono) DeleteObject(gMono);
+  gFont = ui;
+  gFontBold = bold;
+  gMono = mono;
+  gFontPx = 15;
+  gFontDark = dark;
 }
 
 void ApplyMainFonts(HWND h) {
@@ -1121,7 +1134,7 @@ void Relayout(HWND h) {
   const int headerH = twoLine ? (btnH * 2 + 18) : (btnH + 16);
   gHeaderH = headerH;
   const int statusH = rdc::MaxI(20, H / 34);
-  RecreateFonts(rdc::MaxI(12, btnH * 15 / 26));
+  RecreateFonts();
   ApplyMainFonts(h);
 
   int leftW = (W - pad * 3) * 47 / 100;
