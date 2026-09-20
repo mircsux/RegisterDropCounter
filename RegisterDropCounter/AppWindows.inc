@@ -463,7 +463,7 @@ const wchar_t kAboutBody[] =
     L"Sample\r\n"
     L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.\r\n"
     L"File > Stats for Nerds charts drop trends from History.\r\n"
-    L"File > History, Options, and About. They are not header buttons.";
+    L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
     L"v2.31.0  2026-09-19  Visual Studio build\r\n"
@@ -2093,13 +2093,14 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
 
   HMENU fileMenu = CreatePopupMenu();
   AppendMenuW(fileMenu, MF_STRING, IDC_SAMPLE, L"Load Sample Drops");
-  AppendMenuW(fileMenu, MF_STRING, IDC_HISTORY, L"History");
-  AppendMenuW(fileMenu, MF_STRING, IDC_STATS, L"Stats for Nerds");
-  AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(fileMenu, MF_STRING, IDC_OPTIONS, L"Options");
-  AppendMenuW(fileMenu, MF_STRING, IDC_ABOUT, L"About");
+  HMENU helpMenu = CreatePopupMenu();
+  AppendMenuW(helpMenu, MF_STRING, IDC_HISTORY, L"History");
+  AppendMenuW(helpMenu, MF_STRING, IDC_STATS, L"Stats for Nerds");
+  AppendMenuW(helpMenu, MF_STRING, IDC_ABOUT, L"About");
   HMENU bar = CreateMenu();
   AppendMenuW(bar, MF_POPUP, (UINT_PTR)fileMenu, L"&File");
+  AppendMenuW(bar, MF_POPUP, (UINT_PTR)helpMenu, L"&Help");
 
   gMain = CreateWindowExW(0, kClass, L"Register Drop Counter",
                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, 1400,
