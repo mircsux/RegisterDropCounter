@@ -405,7 +405,7 @@ void FillRoundDc(HDC dc, RECT r, COLORREF fill, COLORREF edge) {
 }
 
 bool IsNavyButton(int id) {
-  return id == IDC_CLEAR || id == IDC_UNDO || id == IDC_HISTORY;
+  return id == IDC_CLEAR || id == IDC_UNDO;
 }
 
 void DrawThemedItem(const DRAWITEMSTRUCT* di) {
@@ -1173,8 +1173,6 @@ void Relayout(HWND h) {
   Place(&dwp, h, IDC_CLEAR, bx, by, 90, btnH);
   bx += 96;
   Place(&dwp, h, IDC_UNDO, bx, by, 92, btnH);
-  bx += 98;
-  Place(&dwp, h, IDC_HISTORY, bx, by, 80, btnH);
 
   Place(&dwp, h, IDC_TABS, pad, yTab, leftW - 240, tabH);
   Place(&dwp, h, IDC_SLIP, pad + leftW - 236, yTab, 76, tabH);

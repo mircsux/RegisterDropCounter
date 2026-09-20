@@ -505,7 +505,7 @@
     h += '<div class="file-menu">';
     h += '<button type="button" class="btn btn-ghost" data-act="file-toggle" aria-haspopup="menu" aria-expanded="' + (state.fileOpen ? "true" : "false") + '">File</button>';
     if (state.fileOpen) {
-      h += '<div class="file-pop" role="menu"><button type="button" role="menuitem" data-act="sample">Load Sample Drops</button><button type="button" role="menuitem" data-act="stats">Stats for Nerds</button><div class="sep" role="separator"></div><button type="button" role="menuitem" data-act="options">Options</button><button type="button" role="menuitem" data-act="about">About</button></div>';
+      h += '<div class="file-pop" role="menu"><button type="button" role="menuitem" data-act="sample">Load Sample Drops</button><button type="button" role="menuitem" data-act="history">History</button><button type="button" role="menuitem" data-act="stats">Stats for Nerds</button><div class="sep" role="separator"></div><button type="button" role="menuitem" data-act="options">Options</button><button type="button" role="menuitem" data-act="about">About</button></div>';
     }
     h += "</div>";
     if (state.confirmClear) {
@@ -878,6 +878,7 @@
 
   function runAct(act, i, id) {
     if (act === "file-toggle") { state.fileOpen = !state.fileOpen; paint(); return; }
+    if (act === "history") { state.sheet = "history"; state.fileOpen = false; paint(); return; }
     if (act === "stats") { state.sheet = "stats"; state.fileOpen = false; paint(); return; }
     if (act === "options") { state.sheet = "options"; state.fileOpen = false; paint(); return; }
     if (act === "about") { state.sheet = "about"; state.fileOpen = false; paint(); return; }

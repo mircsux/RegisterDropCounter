@@ -463,7 +463,7 @@ const wchar_t kAboutBody[] =
     L"Sample\r\n"
     L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.\r\n"
     L"File > Stats for Nerds charts drop trends from History.\r\n"
-    L"File > Options and File > About open those windows. They are not header buttons.";
+    L"File > History, Options, and About. They are not header buttons.";
 
 const wchar_t kChangelogBody[] =
     L"v2.31.0  2026-09-19  Visual Studio build\r\n"
@@ -1663,7 +1663,6 @@ void Layout(HWND h) {
   SendMessageW(combo, CB_SETITEMHEIGHT, 0, 22);
   MakeBtn(h, IDC_CLEAR, L"Clear All", 630, 10, 90, 26);
   MakeBtn(h, IDC_UNDO, L"Undo clear", 836, 10, 92, 26);
-  MakeBtn(h, IDC_HISTORY, L"History", 936, 10, 80, 26);
   MakeStatic(h, IDC_TODAY, rdc::FormatSheetDate().c_str(), 1004, 14, 370, 20, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_TODAY), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
@@ -2094,6 +2093,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
 
   HMENU fileMenu = CreatePopupMenu();
   AppendMenuW(fileMenu, MF_STRING, IDC_SAMPLE, L"Load Sample Drops");
+  AppendMenuW(fileMenu, MF_STRING, IDC_HISTORY, L"History");
   AppendMenuW(fileMenu, MF_STRING, IDC_STATS, L"Stats for Nerds");
   AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(fileMenu, MF_STRING, IDC_OPTIONS, L"Options");
