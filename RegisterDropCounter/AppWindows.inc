@@ -758,7 +758,7 @@ void ShowAbout(HWND owner) {
 }
 
 constexpr wchar_t kStatsClass[] = L"RegisterDropCounterStatsWnd";
-constexpr int IDC_S_CLOSE = 9301;
+constexpr int IDC_N_CLOSE = 9301;
 
 void DrawTxt(HDC dc, RECT r, const wchar_t* t, COLORREF c, HFONT f, UINT fmt) {
   HFONT old = (HFONT)SelectObject(dc, f);
@@ -949,7 +949,7 @@ void PaintStats(HWND h, HDC dc) {
 LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
   switch (msg) {
     case WM_CREATE:
-      MakeBtn(h, IDC_S_CLOSE, L"Close", 20, 20, 90, 28);
+      MakeBtn(h, IDC_N_CLOSE, L"Close", 20, 20, 90, 28);
       return 0;
     case WM_ERASEBKGND:
       return 1;
@@ -972,7 +972,7 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_SIZE: {
       RECT rc;
       GetClientRect(h, &rc);
-      HWND btn = GetDlgItem(h, IDC_S_CLOSE);
+      HWND btn = GetDlgItem(h, IDC_N_CLOSE);
       if (btn)
         ::SetWindowPos(btn, nullptr, (rc.right - 90) / 2, rc.bottom - 16 - 28, 90, 28, SWP_NOZORDER);
       InvalidateRect(h, nullptr, FALSE);
@@ -982,7 +982,7 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       DrawThemedItem((DRAWITEMSTRUCT*)l);
       return TRUE;
     case WM_COMMAND:
-      if (LOWORD(w) == IDC_S_CLOSE) DestroyWindow(h);
+      if (LOWORD(w) == IDC_N_CLOSE) DestroyWindow(h);
       return 0;
     case WM_GETMINMAXINFO: {
       auto* m = (MINMAXINFO*)l;
