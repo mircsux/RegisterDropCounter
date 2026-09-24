@@ -1838,6 +1838,9 @@ void Layout(HWND h) {
   MakeBtn(h, IDC_UNDO, L"Undo clear", 836, 10, 92, 26);
   MakeStatic(h, IDC_TODAY, rdc::FormatSheetDate().c_str(), 1004, 14, 370, 20, SS_RIGHT);
   SendMessageW(GetDlgItem(h, IDC_TODAY), WM_SETFONT, (WPARAM)gFontBold, TRUE);
+  MakeStatic(h, IDC_TONIGHT, L"On counter $0.00     Cleared tonight $0.00", 700, 14, 420, 20,
+             SS_LEFT | SS_CENTERIMAGE | SS_ENDELLIPSIS | SS_NOPREFIX);
+  SendMessageW(GetDlgItem(h, IDC_TONIGHT), WM_SETFONT, (WPARAM)gFontBold, TRUE);
 
   HWND tabs = CreateWindowExW(0, WC_TABCONTROLW, L"",
                               WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED |
@@ -1859,6 +1862,7 @@ void Layout(HWND h) {
   MakeBtn(h, IDC_COPY_R, L"Copy R1", 676, 48, 80, 26);
   HWND tillEdit = MakeEditText(h, IDC_TAB_EDIT, 0, 0, 80, 24);
   ShowWindow(tillEdit, SW_HIDE);
+  MakeStatic(h, IDC_LASTDROP, L"", 16, 78, 500, 18, SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX);
 
   const int x0 = 16, y0 = 92, rowH = 24;
   const wchar_t* hdrs[] = {L"", L"Count", L"Denom", L"Amount", L"Drop", L"Left"};
@@ -2003,10 +2007,15 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_CTLCOLORSTATIC: {
       HDC dc = (HDC)w;
       int id = GetDlgCtrlID((HWND)l);
-      if (id == IDC_TITLE || id == IDC_BASELBL || id == IDC_TODAY) {
+      if (id == IDC_TITLE || id == IDC_BASELBL || id == IDC_TODAY || id == IDC_TONIGHT) {
         SetBkColor(dc, kNavy);
         SetTextColor(dc, kOnNavy);
         return (LRESULT)Brush(kNavy);
+      }
+      if (id == IDC_LASTDROP) {
+        SetBkColor(dc, kSheet);
+        SetTextColor(dc, kMuted);
+        return (LRESULT)Brush(kSheet);
       }
       if (id == IDC_LOGTITLE) {
         SetBkColor(dc, kSheet);

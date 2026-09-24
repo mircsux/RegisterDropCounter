@@ -84,6 +84,8 @@ constexpr int IDC_LOGTITLE = 801;
 constexpr int IDC_DEP_LBL = 802;
 constexpr int IDC_EOD_LBL = 803;
 constexpr int IDC_RST_LBL = 804;
+constexpr int IDC_TONIGHT = 820;
+constexpr int IDC_LASTDROP = 821;
 
 constexpr int IDC_H_DATE = 9001;
 constexpr int IDC_H_TODAY = 9002;
@@ -931,16 +933,35 @@ void RefreshComputed(HWND h) {
   SetDlgItemTextW(h, IDC_COPY_R, copyLab);
   RefreshCashLog(h);
 
-  int counted = 0, ok = 0, off = 0;
+  int counted = 0, ok = 0, off = 0, onCounter = 0;
   for (int i = 0; i < rdc::kRegisterCount; ++i) {
     auto x = rdc::ComputeRegister(gRegs[i], gBase);
     if (!x.hasCount) continue;
     ++counted;
+    onCounter += x.dropCents;
     if (x.balanced)
       ++ok;
     else
       ++off;
   }
+  const std::wstring today = rdc::TodayDateKey();
+  const int cleared = rdc::ClearedOnDate(gHistory, today);
+  wchar_t night[160];
+  swprintf(night, 160, L"On counter %s     Cleared tonight %s", rdc::Money(onCounter).c_str(),
+           rdc::Money(cleared).c_str());
+  SetDlgItemTextW(h, IDC_TONIGHT, night);
+
+  const rdc::TillDrop last = rdc::LastDropOnDate(gHistory, gActive, today);
+  wchar_t dropped[160];
+  dropped[0] = 0;
+  if (last.found) {
+    const std::wstring when = rdc::FormatClock(last.at);
+    const std::wstring amt = rdc::Money(last.dropCents);
+    swprintf(dropped, 160, r.hasCount ? L"Last drop %s at %s" : L"Dropped %s at %s", amt.c_str(),
+             when.c_str());
+  }
+  SetDlgItemTextW(h, IDC_LASTDROP, dropped);
+
   wchar_t st[192];
   swprintf(st, 192,
            L"%d counted   %d on base   %d off base   |   Yellow cells are counts. Left total is green when it equals the register base.",
@@ -1136,6 +1157,8 @@ void ApplyMainFonts(HWND h) {
   set(IDC_EOD_LBL, gFont);
   set(IDC_RST_LBL, gFont);
   set(IDC_STATUS, gFont);
+  set(IDC_TONIGHT, gFontBold);
+  set(IDC_LASTDROP, gFont);
   for (int i = 0; i < 6; ++i) set(IDC_HDR0 + i, gFont);
   for (int i = 0; i < rdc::DenomCount; ++i) {
     set(IDC_BADGE0 + i, gFont);
@@ -1174,7 +1197,9 @@ void Relayout(HWND h) {
 
   const int yTab = headerH + 4;
   const int tabH = rdc::MaxI(24, btnH);
-  const int yGrid = yTab + tabH + 6;
+  const int dropH = rdc::MaxI(18, btnH - 4);
+  const int yDrop = yTab + tabH + 2;
+  const int yGrid = yDrop + dropH + 2;
   const int yStatus = H - statusH - 4;
   const int gridBottom = yStatus - 6;
   const int rows = rdc::DenomCount + 2;
@@ -1202,11 +1227,19 @@ void Relayout(HWND h) {
   Place(&dwp, h, IDC_CLEAR, bx, by, 90, btnH);
   bx += 96;
   Place(&dwp, h, IDC_UNDO, bx, by, 92, btnH);
+  bx += 100;
+  {
+    const int todayW = rdc::MinI(280, W / 3);
+    int nightW = W - pad - todayW - 8 - bx;
+    if (nightW < 180) nightW = rdc::MaxI(160, W - bx - pad);
+    Place(&dwp, h, IDC_TONIGHT, bx, by, nightW, btnH);
+  }
 
   Place(&dwp, h, IDC_TABS, pad, yTab, leftW - 240, tabH);
   Place(&dwp, h, IDC_SLIP, pad + leftW - 236, yTab, 76, tabH);
   Place(&dwp, h, IDC_CLEAR_REG, pad + leftW - 154, yTab, 64, tabH);
   Place(&dwp, h, IDC_COPY_R, pad + leftW - 86, yTab, 86, tabH);
+  Place(&dwp, h, IDC_LASTDROP, pad, yDrop, leftW, dropH);
 
   const int yHdr = yGrid;
   for (int i = 0; i < 6; ++i)

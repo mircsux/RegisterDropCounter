@@ -75,6 +75,57 @@ inline std::wstring DateKey(std::time_t t) {
 
 inline std::wstring TodayDateKey() { return DateKey(std::time(nullptr)); }
 
+inline std::wstring FormatClock(std::time_t t) {
+  const std::tm tm = LocalTm(t);
+  int hour = tm.tm_hour % 12;
+  if (hour == 0) hour = 12;
+  wchar_t buf[16];
+  swprintf(buf, 16, L"%d:%02d %s", hour, tm.tm_min, tm.tm_hour < 12 ? L"AM" : L"PM");
+  return buf;
+}
+
+struct TillDrop {
+  bool found = false;
+  std::time_t at = 0;
+  int dropCents = 0;
+};
+
+inline int ClearedOnDate(const std::vector<HistoryEntry>& hist, const std::wstring& dateKey) {
+  int sum = 0;
+  for (const auto& e : hist) {
+    if (DateKey(e.at) != dateKey) continue;
+    if (e.kind == HistRegister) {
+      if (e.registerIndex < 0 || e.registerIndex >= kRegisterCount) continue;
+      const auto r = ComputeRegister(e.registers[e.registerIndex], e.base);
+      if (r.hasCount && r.dropCents > 0) sum += r.dropCents;
+    } else {
+      for (int i = 0; i < kRegisterCount; ++i) {
+        const auto r = ComputeRegister(e.registers[i], e.base);
+        if (r.hasCount && r.dropCents > 0) sum += r.dropCents;
+      }
+    }
+  }
+  return sum;
+}
+
+inline TillDrop LastDropOnDate(const std::vector<HistoryEntry>& hist, int till,
+                               const std::wstring& dateKey) {
+  TillDrop best;
+  if (till < 0 || till >= kRegisterCount) return best;
+  for (const auto& e : hist) {
+    if (DateKey(e.at) != dateKey) continue;
+    if (e.kind == HistRegister && e.registerIndex != till) continue;
+    const auto r = ComputeRegister(e.registers[till], e.base);
+    if (!r.hasCount || r.dropCents <= 0) continue;
+    if (!best.found || e.at > best.at) {
+      best.found = true;
+      best.at = e.at;
+      best.dropCents = r.dropCents;
+    }
+  }
+  return best;
+}
+
 inline std::wstring FormatSheetDate(std::time_t t = std::time(nullptr)) {
   const std::tm tm = LocalTm(t);
   wchar_t buf[80];

@@ -631,12 +631,42 @@
       '<span class="stamp">' + escapeHtml(stamp()) + "</span></div>";
   }
 
+  function nightFigures() {
+    var today = todayKey();
+    var cleared = 0;
+    var last = [];
+    for (var i = 0; i < REGISTER_COUNT; i++) last.push(null);
+    (state.history || []).forEach(function (entry) {
+      if (dateKey(entry.at) !== today) return;
+      var idxs = [];
+      if (entry.kind === "register" && entry.registerIndex != null) idxs = [entry.registerIndex];
+      else { for (var n = 0; n < REGISTER_COUNT; n++) idxs.push(n); }
+      idxs.forEach(function (i) {
+        var counts = entry.registers && entry.registers[i];
+        if (!counts) return;
+        var r = computeRegister(counts, entry.base);
+        if (!r.hasCount || r.dropCents <= 0) return;
+        cleared += r.dropCents;
+        if (!last[i] || entry.at > last[i].at) last[i] = { at: entry.at, dropCents: r.dropCents };
+      });
+    });
+    return { cleared: cleared, last: last };
+  }
+  function clock(ms) {
+    return new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+
   function counterHtml(rs, counted, balanced, off) {
+    var night = nightFigures();
+    var onCounter = 0;
+    rs.forEach(function (r) { if (r.hasCount) onCounter += r.dropCents; });
     var h = '<div class="meta">';
     h += '<span class="chip chip-navy">' + escapeHtml(stamp()) + "</span>";
     h += '<span class="chip chip-paper">' + counted + " counted</span>";
     h += '<span class="chip chip-ok">' + balanced + " on base</span>";
     if (off) h += '<span class="chip chip-bad">' + off + " off base</span>";
+    h += '<span class="chip chip-paper">On counter <b>' + formatMoney(onCounter) + "</b></span>";
+    h += '<span class="chip chip-paper">Cleared tonight <b>' + formatMoney(night.cleared) + "</b></span>";
     h += '<span class="hint">Yellow cells are counts. Tab, Enter, or arrow keys move to the next field. After $100 it wraps back to pennies on this till. On a phone, use the number pad.</span></div>';
     h += '<div class="reg-chips">';
     rs.forEach(function (r, i) {
@@ -648,12 +678,12 @@
     });
     h += "</div>";
     h += '<div class="layout"><div class="regs">';
-    rs.forEach(function (r, i) { h += registerCard(r, i); });
+    rs.forEach(function (r, i) { h += registerCard(r, i, night.last[i]); });
     h += "</div>" + cashLogHtml(rs) + "</div>";
     return h;
   }
 
-  function registerCard(r, i) {
+  function registerCard(r, i, lastDrop) {
     var unused = !r.hasCount;
     var st = unused ? "Empty" : r.balanced ? "Balanced" : "Off base";
     var stCls = unused ? "" : r.balanced ? " ok" : " bad";
@@ -668,6 +698,9 @@
     h += '<button type="button" class="btn btn-ghost" data-act="slip" data-i="' + i + '">Drop slip</button>';
     h += '<button type="button" class="btn btn-ghost" data-act="clear-one" data-i="' + i + '"' + (unused ? " disabled" : "") + ">Clear</button>";
     h += '<span class="status' + stCls + '">' + st + "</span></div></header>";
+    if (lastDrop) {
+      h += '<p class="lastdrop">' + (unused ? "Dropped " : "Last drop ") + "<b>" + formatMoney(lastDrop.dropCents) + "</b> at " + escapeHtml(clock(lastDrop.at)) + "</p>";
+    }
     h += '<div class="table-wrap"><table class="sheet"><thead><tr>';
     h += "<th></th><th>Count</th><th>Denom</th><th>Amount</th><th>Drop</th><th>Left</th></tr></thead><tbody>";
     DENOMS.forEach(function (d) {
