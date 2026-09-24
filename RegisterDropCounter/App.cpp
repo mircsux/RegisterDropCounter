@@ -203,6 +203,11 @@ void ThemeChildEdits(HWND parent);
 void RecreateFonts();
 void ApplyMainFonts(HWND h);
 
+BOOL CALLBACK StampChildFont(HWND child, LPARAM font) {
+  SendMessageW(child, WM_SETFONT, (WPARAM)font, TRUE);
+  return TRUE;
+}
+
 void ApplyTheme() {
   if (gOptions.darkMode) {
     kNavy = RGB(16, 44, 50);
@@ -270,10 +275,7 @@ void ApplyTheme() {
   paint(gStats);
   auto stampKids = [](HWND w) {
     if (!w || !IsWindow(w)) return;
-    EnumChildWindows(w, [](HWND c, LPARAM) -> BOOL {
-      SendMessageW(c, WM_SETFONT, (WPARAM)gFont, TRUE);
-      return TRUE;
-    }, 0);
+    EnumChildWindows(w, StampChildFont, (LPARAM)gFont);
   };
   stampKids(gMain);
   stampKids(gOpt);
@@ -490,11 +492,20 @@ void DrawThemedItem(const DRAWITEMSTRUCT* di) {
       SendMessageW(di->hwndItem, CB_GETLBTEXT, di->itemID, (LPARAM)buf);
     SetBkMode(di->hDC, TRANSPARENT);
     SetTextColor(di->hDC, fg);
-    HFONT old = (HFONT)SelectObject(di->hDC, gFont);
+    HFONT itemFont = nullptr;
+    HFONT use = gFont;
+    if (buf[0] && wcscmp(rdc::NormalizeFontFace(buf), buf) == 0) {
+      const int q = gOptions.darkMode ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
+      itemFont = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+                             DEFAULT_PITCH | FF_DONTCARE, buf);
+      if (itemFont) use = itemFont;
+    }
+    HFONT old = (HFONT)SelectObject(di->hDC, use);
     RECT tr = r;
     tr.left += 8;
     DrawTextW(di->hDC, buf, -1, &tr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     SelectObject(di->hDC, old);
+    if (itemFont) DeleteObject(itemFont);
   }
 }
 

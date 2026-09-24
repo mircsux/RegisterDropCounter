@@ -1226,11 +1226,15 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       MakeStatic(h, IDC_O_FONTLBL, L"Font", 16, 80, 56, 24, SS_LEFT);
       HWND font = CreateWindowW(
           L"COMBOBOX", L"",
-          WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_HASSTRINGS, 76,
-          76, 240, 280, h, (HMENU)(INT_PTR)IDC_O_FONT, gInst, nullptr);
+          WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED |
+              CBS_HASSTRINGS,
+          76, 76, 240, 280, h, (HMENU)(INT_PTR)IDC_O_FONT, gInst, nullptr);
       for (int i = 0; i < rdc::kFontFaceCount; ++i)
         SendMessageW(font, CB_ADDSTRING, 0, (LPARAM)rdc::kFontFaces[i]);
+      SendMessageW(font, CB_SETITEMHEIGHT, (WPARAM)-1, 22);
+      SendMessageW(font, CB_SETITEMHEIGHT, 0, 24);
       SendMessageW(font, WM_SETFONT, (WPARAM)gFont, TRUE);
+      Untheme(font);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 80, 400,
                                24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
