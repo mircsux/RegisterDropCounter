@@ -1,8 +1,8 @@
-/* Register Drop Counter 2.32.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
+/* Register Drop Counter 2.33.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
 (function () {
   "use strict";
 
-  var VERSION = "2.32.0";
+  var VERSION = "2.33.0";
   var RELEASE = "2026-09-23";
   var SUGGESTED_FONTS = [
     "Segoe UI", "Arial", "Calibri", "Candara", "Verdana", "Tahoma", "Trebuchet MS",
@@ -792,6 +792,7 @@
       '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
       '<div class="block"><h3>The drop</h3><p>$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.</p></div>' +
       '<div class="block"><h3>Changelog</h3>' +
+      "<p>v2.33.0  Till keeps the last drop. On counter and Cleared tonight show the deposit. Font list is every installed face. New cash-drawer icon.</p>" +
       "<p>v2.32.0  Help holds History, Stats for Nerds, and About. Stats lists the full History ledger.</p>" +
       "<p>v2.31.0  Visual Studio 2022 build compiles after the Windows dark-mode paint path.</p>" +
       "<p>v2.30.0  Windows 10 dark mode paints title bar, buttons, tabs, and lists.</p>" +

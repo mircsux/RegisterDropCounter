@@ -35,6 +35,8 @@ struct AboutView: View {
                         Text("Changelog")
                             .font(.headline)
                             .foregroundStyle(Theme.navyFg)
+                        Text("v2.33.0  Till keeps the last drop. On counter and Cleared tonight show the deposit. Font list is every installed face. New cash-drawer icon.")
+                            .foregroundStyle(Theme.ink)
                         Text("v2.32.0  Help holds History, Stats for Nerds, and About. Stats lists the full History ledger.")
                             .foregroundStyle(Theme.ink)
                         Text("v2.31.0  Visual Studio 2022 build compiles after the Windows dark-mode paint path.")

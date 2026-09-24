@@ -56,7 +56,7 @@ fun CounterScreen(model: AppModel, modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Register Drop Counter", color = RdcColor.onNavy, fontWeight = FontWeight.SemiBold)
-                    Text("v2.32.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    Text("v2.33.0", color = RdcColor.onNavy.copy(alpha = 0.75f), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
                 var baseOpen by remember { mutableStateOf(false) }
                 Box {

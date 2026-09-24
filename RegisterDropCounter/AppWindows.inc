@@ -467,6 +467,11 @@ const wchar_t kAboutBody[] =
     L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.33.0  2026-09-23  Tonight's totals, icon, and font list\r\n"
+    L"- After Clear, the till keeps the last drop and the time. Counting it again changes the line to Last drop.\r\n"
+    L"- The counter shows On counter (drop still in the drawers) and Cleared tonight (today's deposit). Sample fills stay out.\r\n"
+    L"- Options font choice is a dropdown of every installed face, including Unicode. The program has a cash-drawer icon.\r\n"
+    L"\r\n"
     L"v2.32.0  2026-09-23  Stats ledger and Help menu\r\n"
     L"- Help sits next to File. History, Stats for Nerds, and About live there. File keeps Load Sample Drops and Options.\r\n"
     L"- Stats for Nerds dumps the whole History: spread, every till, every denomination, every hour, every day, and the clear log.\r\n"

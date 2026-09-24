@@ -1,6 +1,6 @@
 # Register Drop Counter for iPhone
 
-Version **2.32.0** (2026-09-23). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.33.0** (2026-09-23). Designed by Ronald Robbins Jr and SuperGrok.
 
 Native SwiftUI app. Same integer-cent drop as the Excel sheet and the Windows app.
 

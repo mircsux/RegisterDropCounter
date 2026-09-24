@@ -251,7 +251,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.32.0  (2026-09-23)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.33.0  (2026-09-23)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
             Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
@@ -261,6 +261,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.33.0  Till keeps the last drop. On counter and Cleared tonight show the deposit. Font list is every installed face. New cash-drawer icon.", color = RdcColor.ink)
             Text("v2.32.0  Help holds History, Stats for Nerds, and About. Stats lists the full History ledger.", color = RdcColor.ink)
             Text("v2.31.0  Visual Studio 2022 build compiles after the Windows dark-mode paint path.", color = RdcColor.ink)
             Text("v2.30.0  Windows 10 dark mode paints title bar, buttons, tabs, and lists.", color = RdcColor.ink)

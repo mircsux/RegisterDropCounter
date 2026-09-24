@@ -1,6 +1,6 @@
 # Register Drop Counter — ISO C23
 
-Version **2.32.0** (2026-09-23). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.33.0** (2026-09-23). Designed by Ronald Robbins Jr and SuperGrok.
 
 Hosted C23 library and console app. Same integer-cent drop as the Excel sheet,
 the Windows app, and the iPhone app. **No C++.**
