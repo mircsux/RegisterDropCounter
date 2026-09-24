@@ -33,6 +33,7 @@
 #include "OneDrive.h"
 #include "Stats.h"
 #include "Version.h"
+#include "resource.h"
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -1267,6 +1268,13 @@ void Relayout(HWND h) {
   SizeLvCols(GetDlgItem(h, IDC_LV_RST), logParts, 10);
   EnableUndoBtn(h);
   InvalidateRect(h, nullptr, TRUE);
+}
+
+HICON AppIcon(int px) {
+  const UINT flags = px ? 0 : LR_DEFAULTSIZE;
+  HICON ic = (HICON)LoadImageW(gInst, MAKEINTRESOURCEW(IDI_APPICON), IMAGE_ICON, px, px, flags);
+  if (!ic) ic = LoadIconW(nullptr, IDI_APPLICATION);
+  return ic;
 }
 
 #include "AppWindows.inc"

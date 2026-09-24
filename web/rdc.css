@@ -95,6 +95,8 @@ button:disabled { opacity: 0.45; cursor: default; }
   align-items: center;
   padding: 10px 16px;
 }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.app-icon { width: 36px; height: 36px; border-radius: 8px; flex: none; }
 .top h1 { margin: 0; font-size: 18px; font-weight: 600; }
 .top .ver { margin-left: 8px; font-family: var(--mono); font-size: 12px; opacity: 0.8; font-weight: 400; }
 .top .sub { margin: 2px 0 0; font-size: 11px; opacity: 0.75; }

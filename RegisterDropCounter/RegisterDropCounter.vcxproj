@@ -143,12 +143,16 @@
     <ClInclude Include="Stats.h" />
     <ClInclude Include="OneDrive.h" />
     <ClInclude Include="Version.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="AppWindows.inc">
       <DependentUpon>App.cpp</DependentUpon>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="App.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

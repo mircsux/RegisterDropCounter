@@ -588,8 +588,8 @@
     var undoLabel = "Undo clear";
     if (last && last.kind === "register") undoLabel = "Undo " + (state.names[last.registerIndex] || ("R" + (last.registerIndex + 1)));
     var h = '<header class="top"><div class="top-inner">';
-    h += '<div><h1>Register Drop Counter<span class="ver">v' + VERSION + '</span></h1>';
-    h += '<p class="sub">Count the drawer. The drop is calculated so each register resets to the base.</p></div>';
+    h += '<div class="brand"><img class="app-icon" src="icon.png" alt="" width="36" height="36"><div><h1>Register Drop Counter<span class="ver">v' + VERSION + '</span></h1>';
+    h += '<p class="sub">Count the drawer. The drop is calculated so each register resets to the base.</p></div></div>';
     h += '<label class="base-box">Register Base <select id="base">';
     BASE_OPTIONS.forEach(function (n) {
       h += '<option value="' + n + '"' + (n === state.base ? " selected" : "") + ">" + formatMoney(n * 100) + "</option>";

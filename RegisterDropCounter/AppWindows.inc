@@ -413,7 +413,8 @@ void ShowHistory(HWND owner) {
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = Brush(kSheet);
     wc.lpszClassName = kHistClass;
-    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hIcon = AppIcon(0);
+    wc.hIconSm = AppIcon(16);
     RegisterClassExW(&wc);
     registered = true;
   }
@@ -744,7 +745,8 @@ void ShowAbout(HWND owner) {
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = Brush(kSheet);
     wc.lpszClassName = kAboutClass;
-    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hIcon = AppIcon(0);
+    wc.hIconSm = AppIcon(16);
     RegisterClassExW(&wc);
     registered = true;
   }
@@ -1101,7 +1103,8 @@ void ShowStats(HWND owner) {
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = Brush(kSheet);
     wc.lpszClassName = kStatsClass;
-    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hIcon = AppIcon(0);
+    wc.hIconSm = AppIcon(16);
     RegisterClassExW(&wc);
     registered = true;
   }
@@ -1444,7 +1447,8 @@ void ShowOptions(HWND owner) {
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = Brush(kSheet);
     wc.lpszClassName = kOptClass;
-    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hIcon = AppIcon(0);
+    wc.hIconSm = AppIcon(16);
     RegisterClassExW(&wc);
     registered = true;
   }
@@ -1747,7 +1751,8 @@ void ShowSlip(HWND owner, int reg) {
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = Brush(kSheet);
     wc.lpszClassName = kSlipClass;
-    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hIcon = AppIcon(0);
+    wc.hIconSm = AppIcon(16);
     RegisterClassExW(&wc);
     registered = true;
   }
@@ -2256,7 +2261,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
   wc.hbrBackground = Brush(kSheet);
   wc.lpszClassName = kClass;
-  wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+  wc.hIcon = AppIcon(0);
+  wc.hIconSm = AppIcon(16);
   RegisterClassExW(&wc);
 
   HMENU fileMenu = CreatePopupMenu();
