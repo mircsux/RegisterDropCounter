@@ -4,21 +4,30 @@
 
   var VERSION = "2.32.0";
   var RELEASE = "2026-09-23";
-  var FONTS = [
-    { id: "segoe", label: "Segoe UI", stack: '"Segoe UI", "IBM Plex Sans", system-ui, sans-serif' },
-    { id: "calibri", label: "Calibri", stack: '"Calibri", "Source Sans 3", sans-serif' },
-    { id: "candara", label: "Candara", stack: '"Candara", "Nunito", sans-serif' },
-    { id: "verdana", label: "Verdana", stack: '"Verdana", "Nunito Sans", sans-serif' },
-    { id: "tahoma", label: "Tahoma", stack: '"Tahoma", "Segoe UI", "IBM Plex Sans", sans-serif' },
-    { id: "georgia", label: "Georgia", stack: '"Georgia", "Source Serif 4", serif' },
-    { id: "cambria", label: "Cambria", stack: '"Cambria", "Source Serif 4", serif' },
-    { id: "bahnschrift", label: "Bahnschrift", stack: '"Bahnschrift", "Archivo Narrow", sans-serif' },
-    { id: "consolas", label: "Consolas", stack: '"Consolas", "IBM Plex Mono", ui-monospace, monospace' },
-    { id: "courier", label: "Courier New", stack: '"Courier New", "IBM Plex Mono", ui-monospace, monospace' },
+  var SUGGESTED_FONTS = [
+    "Segoe UI", "Arial", "Calibri", "Candara", "Verdana", "Tahoma", "Trebuchet MS",
+    "Georgia", "Cambria", "Bahnschrift", "Consolas", "Courier New",
+    "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic",
+    "Nirmala UI", "Leelawadee UI", "Segoe UI Emoji", "Segoe UI Symbol"
   ];
-  function fontStack(id) {
-    for (var i = 0; i < FONTS.length; i++) if (FONTS[i].id === id) return FONTS[i].stack;
-    return FONTS[0].stack;
+  var LEGACY_FONTS = {
+    segoe: "Segoe UI", calibri: "Calibri", candara: "Candara", verdana: "Verdana",
+    tahoma: "Tahoma", georgia: "Georgia", cambria: "Cambria", bahnschrift: "Bahnschrift",
+    consolas: "Consolas", courier: "Courier New"
+  };
+  function cleanFont(raw) {
+    var name = String(raw == null ? "" : raw).replace(/[\r\n\t]/g, " ").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+    if (LEGACY_FONTS[name]) name = LEGACY_FONTS[name];
+    if (!name) return "Segoe UI";
+    return name.slice(0, 80);
+  }
+  function fontStack(name) {
+    var safe = cleanFont(name).replace(/["\\<>]/g, "");
+    return '"' + safe + '", "Segoe UI", system-ui, sans-serif';
+  }
+  function previewStack(name) {
+    var trimmed = String(name == null ? "" : name).replace(/^\s+|\s+$/g, "");
+    return fontStack(trimmed || "Segoe UI");
   }
   var REGISTER_COUNT = 10;
   var HISTORY_LIMIT = 200;
@@ -448,7 +457,8 @@
     fileOpen: false,
     helpOpen: false,
     sampleScratch: false,
-    font: "segoe",
+    font: "Segoe UI",
+    localFonts: [],
   };
 
   function loadJson(key, fallback) {
@@ -483,7 +493,7 @@
     }
     var opt = loadJson(OKEY, {});
     state.darkMode = !!opt.darkMode;
-    state.font = fontStack(opt.font) && FONTS.some(function (f) { return f.id === opt.font; }) ? opt.font : "segoe";
+    state.font = cleanFont(opt.font);
     var hist = loadJson(HKEY, []);
     if (Array.isArray(hist)) state.history = hist.slice(0, HISTORY_LIMIT);
     var names = loadJson(NKEY, null);
@@ -723,16 +733,23 @@
   }
 
   function optionsHtml() {
+    var names = SUGGESTED_FONTS.slice();
+    (state.localFonts || []).forEach(function (n) { names.push(n); });
+    names.push(state.font);
+    var seen = {};
+    names = names.filter(function (n) {
+      if (!n || seen[n]) return false;
+      seen[n] = 1;
+      return true;
+    }).sort(function (a, b) { return a.localeCompare(b); });
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7;text-transform:uppercase">Options</p><h2 style="margin:4px 0 0;font-size:24px">Options</h2></header><div class="body">' +
       '<div class="block"><h3>Appearance</h3><label class="check"><input type="checkbox" id="dark"' + (state.darkMode ? " checked" : "") + "> <span>Dark mode</span></label>" +
       '<p class="muted">Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells. Drop slips still print black on white.</p>' +
       '<label class="check" for="font" style="margin-top:12px">Font</label>' +
-      '<select id="font" style="margin-top:4px;height:36px;min-width:220px;font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px">' +
-      FONTS.map(function (f) {
-        return '<option value="' + f.id + '"' + (state.font === f.id ? " selected" : "") + ' style="font-family:' + f.stack + '">' + escapeHtml(f.label) + "</option>";
-      }).join("") +
-      "</select>" +
-      '<p class="muted">Buttons, till names, and the count cells use this face. It stays on this device.</p></div>' +
+      '<input id="font" list="font-list" spellcheck="false" autocomplete="off" value="' + escapeHtml(state.font) + '" style="margin-top:4px;height:36px;width:100%;max-width:420px;padding:0 8px;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px">' +
+      '<datalist id="font-list">' + names.map(function (n) { return '<option value="' + escapeHtml(n) + '"></option>'; }).join("") + "</datalist>" +
+      '<div class="tools" style="border:0;padding:8px 0"><button type="button" class="btn btn-light" data-act="font-local">List installed fonts</button></div>' +
+      '<p class="muted">Any face installed on this computer, including extended and Unicode fonts. The name is saved on this device.</p></div>' +
       '<div class="block"><h3>History file</h3><p class="muted">Save snapshots as RegisterDropCounter.history — the same file Windows uses for OneDrive.</p>' +
       '<div class="tools" style="border:0;padding:8px 0"><button type="button" class="btn btn-navy" data-act="hist-save">Save history file</button>' +
       '<label class="btn btn-light" style="height:32px">Load history file<input type="file" id="hist-file" accept=".history,.txt,text/plain" hidden></label></div>' +
@@ -910,12 +927,23 @@
       state.darkMode = dark.checked; applyTheme(); save();
     });
     var font = document.getElementById("font");
-    if (font) font.addEventListener("change", function () {
-      state.font = font.value;
-      applyTheme();
-      save();
-      paint();
-    });
+    if (font) {
+      font.style.fontFamily = fontStack(state.font);
+      font.addEventListener("input", function () {
+        var stack = previewStack(font.value);
+        document.documentElement.style.setProperty("--font", stack);
+        document.documentElement.style.setProperty("--mono", stack);
+        font.style.fontFamily = stack;
+      });
+      font.addEventListener("blur", function () { commitFontInput(font); });
+      font.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitFontInput(font);
+          font.blur();
+        }
+      });
+    }
     var hd = document.getElementById("hist-date");
     if (hd) hd.addEventListener("change", function () { state.histDate = hd.value; paint(); });
     var hf = document.getElementById("hist-file");
@@ -943,6 +971,18 @@
       b.addEventListener("pointerdown", function (e) { e.preventDefault(); });
       b.addEventListener("click", function () { padPress(b.getAttribute("data-pad")); });
     });
+  }
+
+  function commitFontInput(el) {
+    var next = cleanFont(el.value);
+    el.value = next;
+    if (next === state.font) {
+      applyTheme();
+      return;
+    }
+    state.font = next;
+    applyTheme();
+    save();
   }
 
   function commitTill() {
@@ -992,6 +1032,33 @@
     if (act === "history") { state.sheet = "history"; state.fileOpen = false; state.helpOpen = false; paint(); return; }
     if (act === "stats") { state.sheet = "stats"; state.fileOpen = false; state.helpOpen = false; paint(); return; }
     if (act === "options") { state.sheet = "options"; state.fileOpen = false; state.helpOpen = false; paint(); return; }
+    if (act === "font-local") {
+      var query = window.queryLocalFonts;
+      if (!query) {
+        state.status = "This browser did not share installed fonts. Type the font name anyway.";
+        paint();
+        return;
+      }
+      query().then(function (fonts) {
+        var seen = {};
+        var names = [];
+        (fonts || []).forEach(function (f) {
+          if (!f || !f.family || seen[f.family]) return;
+          seen[f.family] = 1;
+          names.push(f.family);
+        });
+        names.sort(function (a, b) { return a.localeCompare(b); });
+        state.localFonts = names;
+        state.status = names.length
+          ? names.length + " installed fonts. Pick one or type a Unicode name."
+          : "No installed fonts were returned. Type the font name anyway.";
+        paint();
+      }).catch(function () {
+        state.status = "Font list was blocked. Type the font name instead.";
+        paint();
+      });
+      return;
+    }
     if (act === "about") { state.sheet = "about"; state.fileOpen = false; state.helpOpen = false; paint(); return; }
     if (act === "sample") {
       var cap = 600000;

@@ -487,14 +487,14 @@ void DrawThemedItem(const DRAWITEMSTRUCT* di) {
       fg = sel ? kOnNavy : kInk;
     }
     FillRect(di->hDC, &r, fill == kPaper ? Brush(kPaper) : (fill == kNavyMid ? Brush(kNavyMid) : Brush(kNavyDeep)));
-    wchar_t buf[64]{};
+    wchar_t buf[128]{};
     if (di->itemID != (UINT)-1)
       SendMessageW(di->hwndItem, CB_GETLBTEXT, di->itemID, (LPARAM)buf);
     SetBkMode(di->hDC, TRANSPARENT);
     SetTextColor(di->hDC, fg);
     HFONT itemFont = nullptr;
     HFONT use = gFont;
-    if (buf[0] && wcscmp(rdc::NormalizeFontFace(buf), buf) == 0) {
+    if (buf[0] && buf[0] != L'$') {
       const int q = gOptions.darkMode ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
       itemFont = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
                              DEFAULT_PITCH | FF_DONTCARE, buf);
@@ -1082,16 +1082,16 @@ void SizeLvCols(HWND lv, const int* parts, int n) {
 
 void RecreateFonts() {
   const bool dark = gOptions.darkMode;
-  const wchar_t* face = rdc::NormalizeFontFace(gOptions.fontFace);
+  const std::wstring face = rdc::SanitizeFontFace(gOptions.fontFace);
   if (gFont && gFontBold && gMono && gFontPx == 15 && gFontDark == dark && gFontFace == face)
     return;
   const int q = dark ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
   HFONT ui = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                         DEFAULT_PITCH | FF_DONTCARE, face);
+                         DEFAULT_PITCH | FF_DONTCARE, face.c_str());
   HFONT bold = CreateFontW(-16, 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                           DEFAULT_PITCH | FF_DONTCARE, face);
+                           DEFAULT_PITCH | FF_DONTCARE, face.c_str());
   HFONT mono = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                           DEFAULT_PITCH | FF_DONTCARE, face);
+                           DEFAULT_PITCH | FF_DONTCARE, face.c_str());
   if (gFont) DeleteObject(gFont);
   if (gFontBold) DeleteObject(gFontBold);
   if (gMono) DeleteObject(gMono);

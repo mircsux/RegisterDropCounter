@@ -1133,6 +1133,8 @@ constexpr int IDC_O_CLOSE = 9211;
 constexpr int IDC_O_DARK = 9212;
 constexpr int IDC_O_FONTLBL = 9213;
 constexpr int IDC_O_FONT = 9214;
+constexpr int IDC_O_FONTNAME = 9215;
+constexpr int IDC_O_FONTHINT = 9216;
 
 const wchar_t kOptHelp[] =
     L"When this is on, Clear and Clear All also write snapshots to a file in your "
@@ -1142,6 +1144,61 @@ const wchar_t kOptHelp[] =
     L"The file is RegisterDropCounter.history inside the folder below. Leave the folder "
     L"blank to use OneDrive\\RegisterDropCounter automatically.";
 
+int CALLBACK CollectInstalledFont(const LOGFONTW* lf, const TEXTMETRICW*, DWORD, LPARAM lp) {
+  if (!lf || !lf->lfFaceName[0] || lf->lfFaceName[0] == L'@') return 1;
+  reinterpret_cast<std::vector<std::wstring>*>(lp)->emplace_back(lf->lfFaceName);
+  return 1;
+}
+
+bool FontNameLess(const std::wstring& a, const std::wstring& b) {
+  return CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE | SORT_STRINGSORT, a.c_str(), -1,
+                        b.c_str(), -1) == CSTR_LESS_THAN;
+}
+
+bool FontNameSame(const std::wstring& a, const std::wstring& b) {
+  return CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, a.c_str(), -1, b.c_str(), -1) ==
+         CSTR_EQUAL;
+}
+
+void FillInstalledFonts(HWND combo) {
+  std::vector<std::wstring> names;
+  LOGFONTW spec{};
+  spec.lfCharSet = DEFAULT_CHARSET;
+  HDC dc = GetDC(nullptr);
+  if (dc) {
+    EnumFontFamiliesExW(dc, &spec, CollectInstalledFont, (LPARAM)&names, 0);
+    ReleaseDC(nullptr, dc);
+  }
+  std::sort(names.begin(), names.end(), FontNameLess);
+  names.erase(std::unique(names.begin(), names.end(), FontNameSame), names.end());
+  if (names.empty()) {
+    const wchar_t* fallback[] = {L"Segoe UI", L"Arial",           L"Calibri",
+                                 L"Consolas", L"Courier New",     L"Georgia",
+                                 L"Tahoma",   L"Microsoft YaHei", L"Malgun Gothic",
+                                 L"Yu Gothic", L"Nirmala UI"};
+    for (auto* n : fallback) names.emplace_back(n);
+  }
+  const std::wstring current = rdc::SanitizeFontFace(gOptions.fontFace);
+  bool found = false;
+  for (const auto& n : names) {
+    if (FontNameSame(n, current)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) names.insert(names.begin(), current);
+  SendMessageW(combo, CB_RESETCONTENT, 0, 0);
+  for (const auto& n : names) SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)n.c_str());
+}
+
+void ApplyChosenFont(const std::wstring& raw) {
+  const std::wstring face = rdc::SanitizeFontFace(raw);
+  if (face == gOptions.fontFace && gFontFace == face) return;
+  gOptions.fontFace = face;
+  PersistOptions();
+  ApplyTheme();
+}
+
 void RefreshOptionsUi(HWND h) {
   SendMessageW(GetDlgItem(h, IDC_O_DARK), BM_SETCHECK,
                gOptions.darkMode ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -1149,12 +1206,11 @@ void RefreshOptionsUi(HWND h) {
                gOptions.syncOneDrive ? BST_CHECKED : BST_UNCHECKED, 0);
   HWND font = GetDlgItem(h, IDC_O_FONT);
   if (font) {
-    const wchar_t* face = rdc::NormalizeFontFace(gOptions.fontFace);
-    int sel = 0;
-    for (int i = 0; i < rdc::kFontFaceCount; ++i) {
-      if (wcscmp(face, rdc::kFontFaces[i]) == 0) sel = i;
-    }
-    SendMessageW(font, CB_SETCURSEL, sel, 0);
+    const std::wstring face = rdc::SanitizeFontFace(gOptions.fontFace);
+    SetDlgItemTextW(h, IDC_O_FONTNAME, face.c_str());
+    int sel = (int)SendMessageW(font, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)face.c_str());
+    if (sel < 0) sel = (int)SendMessageW(font, CB_ADDSTRING, 0, (LPARAM)face.c_str());
+    if (sel >= 0) SendMessageW(font, CB_SETCURSEL, sel, 0);
   }
   std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
   if (folder.empty()) folder = gOptions.folder;
@@ -1193,18 +1249,20 @@ void RelayoutOptions(HWND h) {
   if (W < 240 || H < 180) return;
   const int pad = 16;
   const int btnH = 28;
-  HDWP dwp = BeginDeferWindowPos(15);
+  HDWP dwp = BeginDeferWindowPos(18);
   if (!dwp) return;
   Place(&dwp, h, IDC_O_TITLE, pad, 10, W - pad * 2, 24);
   Place(&dwp, h, IDC_O_DARK, pad, 48, W - pad * 2, 24);
   Place(&dwp, h, IDC_O_FONTLBL, pad, 80, 56, 24);
-  Place(&dwp, h, IDC_O_FONT, pad + 60, 76, 240, 280);
-  Place(&dwp, h, IDC_O_SYNC, pad, 112, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_HELP, pad, 144, W - pad * 2, 100);
-  Place(&dwp, h, IDC_O_PATHLBL, pad, 256, 80, 22);
-  Place(&dwp, h, IDC_O_PATH, pad + 84, 252, W - pad * 2 - 84 - 128, 28);
-  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 252, 120, 28);
-  const int yAct = 296;
+  Place(&dwp, h, IDC_O_FONT, pad + 60, 76, W - pad * 2 - 60, 280);
+  Place(&dwp, h, IDC_O_FONTNAME, pad, 112, W - pad * 2, 28);
+  Place(&dwp, h, IDC_O_FONTHINT, pad, 142, W - pad * 2, 18);
+  Place(&dwp, h, IDC_O_SYNC, pad, 164, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_HELP, pad, 196, W - pad * 2, 72);
+  Place(&dwp, h, IDC_O_PATHLBL, pad, 276, 80, 22);
+  Place(&dwp, h, IDC_O_PATH, pad + 84, 272, W - pad * 2 - 84 - 128, 28);
+  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 272, 120, 28);
+  const int yAct = 312;
   Place(&dwp, h, IDC_O_SAVE, pad, yAct, 150, btnH);
   Place(&dwp, h, IDC_O_LOAD, pad + 158, yAct, 160, btnH);
   Place(&dwp, h, IDC_O_SYNCNOW, pad + 326, yAct, 100, btnH);
@@ -1227,14 +1285,18 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       HWND font = CreateWindowW(
           L"COMBOBOX", L"",
           WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED |
-              CBS_HASSTRINGS,
-          76, 76, 240, 280, h, (HMENU)(INT_PTR)IDC_O_FONT, gInst, nullptr);
-      for (int i = 0; i < rdc::kFontFaceCount; ++i)
-        SendMessageW(font, CB_ADDSTRING, 0, (LPARAM)rdc::kFontFaces[i]);
+              CBS_HASSTRINGS | CBS_SORT,
+          76, 76, 360, 320, h, (HMENU)(INT_PTR)IDC_O_FONT, gInst, nullptr);
+      FillInstalledFonts(font);
       SendMessageW(font, CB_SETITEMHEIGHT, (WPARAM)-1, 22);
       SendMessageW(font, CB_SETITEMHEIGHT, 0, 24);
       SendMessageW(font, WM_SETFONT, (WPARAM)gFont, TRUE);
       Untheme(font);
+      HWND typed = MakeEditText(h, IDC_O_FONTNAME, 16, 112, 400, 28);
+      SendMessageW(typed, EM_SETCUEBANNER, TRUE,
+                   (LPARAM)L"Or type any font name, including Unicode");
+      MakeStatic(h, IDC_O_FONTHINT, L"Any installed face, including Unicode and symbol fonts.", 16,
+                 142, 560, 18, SS_LEFT);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 80, 400,
                                24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
@@ -1302,12 +1364,17 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         PersistOptions();
         ApplyTheme();
       } else if (id == IDC_O_FONT && code == CBN_SELCHANGE) {
+        wchar_t buf[LF_FACESIZE];
         int sel = (int)SendMessageW((HWND)l, CB_GETCURSEL, 0, 0);
-        if (sel >= 0 && sel < rdc::kFontFaceCount) {
-          gOptions.fontFace = rdc::kFontFaces[sel];
-          PersistOptions();
-          ApplyTheme();
+        if (sel >= 0 && SendMessageW((HWND)l, CB_GETLBTEXT, sel, (LPARAM)buf) != CB_ERR) {
+          SetDlgItemTextW(h, IDC_O_FONTNAME, buf);
+          ApplyChosenFont(buf);
         }
+      } else if (id == IDC_O_FONTNAME && code == EN_KILLFOCUS) {
+        wchar_t buf[LF_FACESIZE];
+        GetDlgItemTextW(h, IDC_O_FONTNAME, buf, LF_FACESIZE);
+        ApplyChosenFont(buf);
+        RefreshOptionsUi(h);
       } else if (id == IDC_O_SYNC) {
         gOptions.syncOneDrive = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
         PersistOptions();
