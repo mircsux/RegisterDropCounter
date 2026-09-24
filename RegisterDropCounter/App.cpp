@@ -116,6 +116,7 @@ WNDPROC gOldEditProc = nullptr;
 int gHeaderH = 44;
 int gFontPx = 0;
 bool gFontDark = false;
+std::wstring gFontFace;
 bool gAboutLogOpen = false;
 rdc::Counts gRegs[rdc::kRegisterCount]{};
 int gBase = 400;
@@ -267,6 +268,19 @@ void ApplyTheme() {
   paint(gOpt);
   paint(gAbout);
   paint(gStats);
+  auto stampKids = [](HWND w) {
+    if (!w || !IsWindow(w)) return;
+    EnumChildWindows(w, [](HWND c, LPARAM) -> BOOL {
+      SendMessageW(c, WM_SETFONT, (WPARAM)gFont, TRUE);
+      return TRUE;
+    }, 0);
+  };
+  stampKids(gMain);
+  stampKids(gOpt);
+  stampKids(gAbout);
+  stampKids(gSlip);
+  stampKids(gHist);
+  stampKids(gStats);
   if (gMain) ApplyMainFonts(gMain);
   if (gMain) {
     ThemeListView(GetDlgItem(gMain, IDC_LV_DEP));
@@ -1057,14 +1071,16 @@ void SizeLvCols(HWND lv, const int* parts, int n) {
 
 void RecreateFonts() {
   const bool dark = gOptions.darkMode;
-  if (gFont && gFontBold && gMono && gFontPx == 15 && gFontDark == dark) return;
+  const wchar_t* face = rdc::NormalizeFontFace(gOptions.fontFace);
+  if (gFont && gFontBold && gMono && gFontPx == 15 && gFontDark == dark && gFontFace == face)
+    return;
   const int q = dark ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
   HFONT ui = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                         VARIABLE_PITCH | FF_SWISS, L"Segoe UI");
+                         DEFAULT_PITCH | FF_DONTCARE, face);
   HFONT bold = CreateFontW(-16, 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                           VARIABLE_PITCH | FF_SWISS, L"Segoe UI");
+                           DEFAULT_PITCH | FF_DONTCARE, face);
   HFONT mono = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                           FIXED_PITCH | FF_MODERN, L"Consolas");
+                           DEFAULT_PITCH | FF_DONTCARE, face);
   if (gFont) DeleteObject(gFont);
   if (gFontBold) DeleteObject(gFontBold);
   if (gMono) DeleteObject(gMono);
@@ -1073,6 +1089,7 @@ void RecreateFonts() {
   gMono = mono;
   gFontPx = 15;
   gFontDark = dark;
+  gFontFace = face;
 }
 
 void ApplyMainFonts(HWND h) {

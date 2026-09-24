@@ -4,6 +4,22 @@
 
   var VERSION = "2.32.0";
   var RELEASE = "2026-09-23";
+  var FONTS = [
+    { id: "segoe", label: "Segoe UI", stack: '"Segoe UI", "IBM Plex Sans", system-ui, sans-serif' },
+    { id: "calibri", label: "Calibri", stack: '"Calibri", "Source Sans 3", sans-serif' },
+    { id: "candara", label: "Candara", stack: '"Candara", "Nunito", sans-serif' },
+    { id: "verdana", label: "Verdana", stack: '"Verdana", "Nunito Sans", sans-serif' },
+    { id: "tahoma", label: "Tahoma", stack: '"Tahoma", "Segoe UI", "IBM Plex Sans", sans-serif' },
+    { id: "georgia", label: "Georgia", stack: '"Georgia", "Source Serif 4", serif' },
+    { id: "cambria", label: "Cambria", stack: '"Cambria", "Source Serif 4", serif' },
+    { id: "bahnschrift", label: "Bahnschrift", stack: '"Bahnschrift", "Archivo Narrow", sans-serif' },
+    { id: "consolas", label: "Consolas", stack: '"Consolas", "IBM Plex Mono", ui-monospace, monospace' },
+    { id: "courier", label: "Courier New", stack: '"Courier New", "IBM Plex Mono", ui-monospace, monospace' },
+  ];
+  function fontStack(id) {
+    for (var i = 0; i < FONTS.length; i++) if (FONTS[i].id === id) return FONTS[i].stack;
+    return FONTS[0].stack;
+  }
   var REGISTER_COUNT = 10;
   var HISTORY_LIMIT = 200;
   var TILL_NAME_MAX = 20;
@@ -432,6 +448,7 @@
     fileOpen: false,
     helpOpen: false,
     sampleScratch: false,
+    font: "segoe",
   };
 
   function loadJson(key, fallback) {
@@ -448,7 +465,7 @@
         registers: state.registers,
         sampleScratch: !!state.sampleScratch,
       }));
-      localStorage.setItem(OKEY, JSON.stringify({ darkMode: state.darkMode }));
+      localStorage.setItem(OKEY, JSON.stringify({ darkMode: state.darkMode, font: state.font }));
       localStorage.setItem(HKEY, JSON.stringify(state.history));
       localStorage.setItem(NKEY, JSON.stringify(state.names));
     } catch (e) {}
@@ -466,6 +483,7 @@
     }
     var opt = loadJson(OKEY, {});
     state.darkMode = !!opt.darkMode;
+    state.font = fontStack(opt.font) && FONTS.some(function (f) { return f.id === opt.font; }) ? opt.font : "segoe";
     var hist = loadJson(HKEY, []);
     if (Array.isArray(hist)) state.history = hist.slice(0, HISTORY_LIMIT);
     var names = loadJson(NKEY, null);
@@ -477,6 +495,9 @@
   function applyTheme() {
     document.documentElement.classList.toggle("dark", state.darkMode);
     document.documentElement.style.colorScheme = state.darkMode ? "dark" : "light";
+    var stack = fontStack(state.font);
+    document.documentElement.style.setProperty("--font", stack);
+    document.documentElement.style.setProperty("--mono", stack);
   }
 
   function results() {
@@ -704,7 +725,14 @@
   function optionsHtml() {
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7;text-transform:uppercase">Options</p><h2 style="margin:4px 0 0;font-size:24px">Options</h2></header><div class="body">' +
       '<div class="block"><h3>Appearance</h3><label class="check"><input type="checkbox" id="dark"' + (state.darkMode ? " checked" : "") + "> <span>Dark mode</span></label>" +
-      '<p class="muted">Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells. Drop slips still print black on white.</p></div>' +
+      '<p class="muted">Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells. Drop slips still print black on white.</p>' +
+      '<label class="check" for="font" style="margin-top:12px">Font</label>' +
+      '<select id="font" style="margin-top:4px;height:36px;min-width:220px;font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px">' +
+      FONTS.map(function (f) {
+        return '<option value="' + f.id + '"' + (state.font === f.id ? " selected" : "") + ' style="font-family:' + f.stack + '">' + escapeHtml(f.label) + "</option>";
+      }).join("") +
+      "</select>" +
+      '<p class="muted">Buttons, till names, and the count cells use this face. It stays on this device.</p></div>' +
       '<div class="block"><h3>History file</h3><p class="muted">Save snapshots as RegisterDropCounter.history — the same file Windows uses for OneDrive.</p>' +
       '<div class="tools" style="border:0;padding:8px 0"><button type="button" class="btn btn-navy" data-act="hist-save">Save history file</button>' +
       '<label class="btn btn-light" style="height:32px">Load history file<input type="file" id="hist-file" accept=".history,.txt,text/plain" hidden></label></div>' +
@@ -880,6 +908,13 @@
     var dark = document.getElementById("dark");
     if (dark) dark.addEventListener("change", function () {
       state.darkMode = dark.checked; applyTheme(); save();
+    });
+    var font = document.getElementById("font");
+    if (font) font.addEventListener("change", function () {
+      state.font = font.value;
+      applyTheme();
+      save();
+      paint();
     });
     var hd = document.getElementById("hist-date");
     if (hd) hd.addEventListener("change", function () { state.histDate = hd.value; paint(); });

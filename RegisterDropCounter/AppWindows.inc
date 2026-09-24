@@ -1131,6 +1131,8 @@ constexpr int IDC_O_SYNCNOW = 9209;
 constexpr int IDC_O_STATUS = 9210;
 constexpr int IDC_O_CLOSE = 9211;
 constexpr int IDC_O_DARK = 9212;
+constexpr int IDC_O_FONTLBL = 9213;
+constexpr int IDC_O_FONT = 9214;
 
 const wchar_t kOptHelp[] =
     L"When this is on, Clear and Clear All also write snapshots to a file in your "
@@ -1145,6 +1147,15 @@ void RefreshOptionsUi(HWND h) {
                gOptions.darkMode ? BST_CHECKED : BST_UNCHECKED, 0);
   SendMessageW(GetDlgItem(h, IDC_O_SYNC), BM_SETCHECK,
                gOptions.syncOneDrive ? BST_CHECKED : BST_UNCHECKED, 0);
+  HWND font = GetDlgItem(h, IDC_O_FONT);
+  if (font) {
+    const wchar_t* face = rdc::NormalizeFontFace(gOptions.fontFace);
+    int sel = 0;
+    for (int i = 0; i < rdc::kFontFaceCount; ++i) {
+      if (wcscmp(face, rdc::kFontFaces[i]) == 0) sel = i;
+    }
+    SendMessageW(font, CB_SETCURSEL, sel, 0);
+  }
   std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
   if (folder.empty()) folder = gOptions.folder;
   SetDlgItemTextW(h, IDC_O_PATH, folder.c_str());
@@ -1182,16 +1193,18 @@ void RelayoutOptions(HWND h) {
   if (W < 240 || H < 180) return;
   const int pad = 16;
   const int btnH = 28;
-  HDWP dwp = BeginDeferWindowPos(13);
+  HDWP dwp = BeginDeferWindowPos(15);
   if (!dwp) return;
   Place(&dwp, h, IDC_O_TITLE, pad, 10, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_DARK, pad, 52, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_SYNC, pad, 80, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_HELP, pad, 112, W - pad * 2, 116);
-  Place(&dwp, h, IDC_O_PATHLBL, pad, 236, 80, 22);
-  Place(&dwp, h, IDC_O_PATH, pad + 84, 232, W - pad * 2 - 84 - 128, 28);
-  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 232, 120, 28);
-  const int yAct = 276;
+  Place(&dwp, h, IDC_O_DARK, pad, 48, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_FONTLBL, pad, 80, 56, 24);
+  Place(&dwp, h, IDC_O_FONT, pad + 60, 76, 240, 280);
+  Place(&dwp, h, IDC_O_SYNC, pad, 112, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_HELP, pad, 144, W - pad * 2, 100);
+  Place(&dwp, h, IDC_O_PATHLBL, pad, 256, 80, 22);
+  Place(&dwp, h, IDC_O_PATH, pad + 84, 252, W - pad * 2 - 84 - 128, 28);
+  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 252, 120, 28);
+  const int yAct = 296;
   Place(&dwp, h, IDC_O_SAVE, pad, yAct, 150, btnH);
   Place(&dwp, h, IDC_O_LOAD, pad + 158, yAct, 160, btnH);
   Place(&dwp, h, IDC_O_SYNCNOW, pad + 326, yAct, 100, btnH);
@@ -1210,6 +1223,14 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                                 24, h, (HMENU)(INT_PTR)IDC_O_DARK, gInst, nullptr);
       SendMessageW(dark, WM_SETFONT, (WPARAM)gFont, TRUE);
       Untheme(dark);
+      MakeStatic(h, IDC_O_FONTLBL, L"Font", 16, 80, 56, 24, SS_LEFT);
+      HWND font = CreateWindowW(
+          L"COMBOBOX", L"",
+          WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_HASSTRINGS, 76,
+          76, 240, 280, h, (HMENU)(INT_PTR)IDC_O_FONT, gInst, nullptr);
+      for (int i = 0; i < rdc::kFontFaceCount; ++i)
+        SendMessageW(font, CB_ADDSTRING, 0, (LPARAM)rdc::kFontFaces[i]);
+      SendMessageW(font, WM_SETFONT, (WPARAM)gFont, TRUE);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 80, 400,
                                24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
@@ -1276,6 +1297,13 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         gOptions.darkMode = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
         PersistOptions();
         ApplyTheme();
+      } else if (id == IDC_O_FONT && code == CBN_SELCHANGE) {
+        int sel = (int)SendMessageW((HWND)l, CB_GETCURSEL, 0, 0);
+        if (sel >= 0 && sel < rdc::kFontFaceCount) {
+          gOptions.fontFace = rdc::kFontFaces[sel];
+          PersistOptions();
+          ApplyTheme();
+        }
       } else if (id == IDC_O_SYNC) {
         gOptions.syncOneDrive = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
         PersistOptions();
@@ -1334,7 +1362,7 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_GETMINMAXINFO: {
       auto* m = (MINMAXINFO*)l;
       m->ptMinTrackSize.x = 560;
-      m->ptMinTrackSize.y = 420;
+      m->ptMinTrackSize.y = 480;
       return 0;
     }
     case WM_CLOSE:
@@ -1369,7 +1397,7 @@ void ShowOptions(HWND owner) {
   RECT rc;
   GetWindowRect(owner, &rc);
   gOpt = CreateWindowExW(WS_EX_APPWINDOW, kOptClass, L"Options",
-                         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 60, rc.top + 60, 680, 460,
+                         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 60, rc.top + 60, 680, 520,
                          owner, nullptr, gInst, nullptr);
   ApplyWinDark(gOpt);
   ThemeChildEdits(gOpt);

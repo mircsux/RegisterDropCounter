@@ -16,8 +16,22 @@ namespace rdc {
 struct Options {
   bool syncOneDrive = false;
   bool darkMode = false;
+  std::wstring fontFace = L"Segoe UI";
   std::wstring folder;  // empty = auto-detect OneDrive\RegisterDropCounter
 };
+
+inline const wchar_t* kFontFaces[] = {
+    L"Segoe UI", L"Calibri", L"Candara",  L"Verdana",     L"Tahoma",
+    L"Georgia",  L"Cambria", L"Bahnschrift", L"Consolas", L"Courier New",
+};
+inline constexpr int kFontFaceCount = 10;
+
+inline const wchar_t* NormalizeFontFace(const std::wstring& name) {
+  for (int i = 0; i < kFontFaceCount; ++i) {
+    if (name == kFontFaces[i]) return kFontFaces[i];
+  }
+  return kFontFaces[0];
+}
 
 inline std::wstring DetectOneDriveRoot() {
 #if !defined(_WIN32)
@@ -95,7 +109,7 @@ inline bool SaveOptions(const std::wstring& path, const Options& o) {
   std::wofstream out(path.c_str());
   if (!out) return false;
   out << L"RDCO1\n" << (o.syncOneDrive ? 1 : 0) << L"\n" << o.folder << L"\n"
-      << (o.darkMode ? 1 : 0) << L"\n";
+      << (o.darkMode ? 1 : 0) << L"\n" << NormalizeFontFace(o.fontFace) << L"\n";
   return true;
 #endif
 }
@@ -103,6 +117,7 @@ inline bool SaveOptions(const std::wstring& path, const Options& o) {
 inline bool LoadOptions(const std::wstring& path, Options* o) {
   o->syncOneDrive = false;
   o->darkMode = false;
+  o->fontFace = L"Segoe UI";
   o->folder.clear();
 #if !defined(_WIN32)
   (void)path;
@@ -125,6 +140,12 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
     while (!darkLine.empty() && (darkLine.back() == L'\r' || darkLine.back() == L'\n'))
       darkLine.pop_back();
     o->darkMode = darkLine == L"1";
+  }
+  std::wstring fontLine;
+  if (std::getline(in, fontLine)) {
+    while (!fontLine.empty() && (fontLine.back() == L'\r' || fontLine.back() == L'\n'))
+      fontLine.pop_back();
+    o->fontFace = NormalizeFontFace(fontLine);
   }
   return true;
 #endif
