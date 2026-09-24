@@ -274,7 +274,7 @@
 
   function statsHtml() {
     var events = dropEvents(state.history);
-    var h = '<article class="card panel stats-page"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7">File</p><h2 style="margin:4px 0 0;font-size:24px">Stats for Nerds</h2><p style="margin:8px 0 0;opacity:.85">Drop is the cash pulled so each drawer resets to base. Sample fills stay out of History, so they stay out of these charts.</p></header>';
+    var h = '<article class="card panel stats-page"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7">Help</p><h2 style="margin:4px 0 0;font-size:24px">Stats for Nerds</h2><p style="margin:8px 0 0;opacity:.85">Every clear in History, split until there is nothing left to split. Sample fills stay out of History.</p></header>';
     if (!events.length) {
       return h + '<div class="body"><p class="muted">History is empty. Count a till, then Clear. Each real clear becomes a point on the charts.</p></div></article>';
     }
@@ -308,26 +308,93 @@
     var wdItems = wd.map(function (label, i) { return { label: label, v: byWd[i] }; });
     var denomItems = DENOMS.map(function (d) {
       var label = d.kind === "bill" ? "$" + d.label : (d.rollLetter ? d.rollLetter + "-roll" : d.label);
-      return { label: label, v: byDenom[d.key] || 0 };
-    }).filter(function (it) { return it.v > 0; }).sort(function (a, b) { return b.v - a.v; }).slice(0, 8);
+      return { label: label, kind: d.kind, key: d.key, v: byDenom[d.key] || 0, pcs: 0 };
+    });
+    events.forEach(function (e) {
+      DENOMS.forEach(function (d, i) {
+        denomItems[i].pcs += e.drop[d.key] || 0;
+      });
+    });
+    var chartDenoms = denomItems.filter(function (it) { return it.v > 0; }).sort(function (a, b) { return b.v - a.v; });
+    var drops = events.map(function (e) { return e.dropCents; }).sort(function (a, b) { return a - b; });
+    function pick(p) {
+      if (!drops.length) return 0;
+      var i = Math.round((drops.length - 1) * p);
+      return drops[Math.max(0, Math.min(drops.length - 1, i))];
+    }
+    var bills = 0, coins = 0, rolls = 0, pieces = 0;
+    events.forEach(function (e) {
+      DENOMS.forEach(function (d) {
+        var n = e.drop[d.key] || 0;
+        pieces += n;
+        var c = n * d.cents;
+        if (d.kind === "bill") bills += c;
+        else if (d.kind === "roll") rolls += c;
+        else coins += c;
+      });
+    });
     var top = tillItems[0];
     var topDay = wdItems.slice().sort(function (a, b) { return b.v - a.v; })[0];
-    h += '<div class="stat-tiles"><div><span>Drop in History</span><strong>' + formatMoney(total) + "</strong></div>";
-    h += "<div><span>Clears</span><strong>" + events.length + "</strong></div>";
-    h += "<div><span>Average drop</span><strong>" + formatMoney(avg) + "</strong></div>";
-    h += "<div><span>Tills</span><strong>" + tillItems.length + "</strong></div></div>";
+    function tile(label, value) {
+      return "<div><span>" + escapeHtml(label) + "</span><strong>" + value + "</strong></div>";
+    }
+    h += '<div class="stat-tiles">';
+    h += tile("Drop in History", formatMoney(total));
+    h += tile("Clears", String(events.length));
+    h += tile("Average drop", formatMoney(avg));
+    h += tile("Median", formatMoney(pick(0.5)));
+    h += tile("Smallest", formatMoney(drops[0] || 0));
+    h += tile("Biggest", formatMoney(drops[drops.length - 1] || 0));
+    h += tile("p90", formatMoney(pick(0.9)));
+    h += tile("Bills", formatMoney(bills));
+    h += tile("Loose coin", formatMoney(coins));
+    h += tile("Rolls", formatMoney(rolls));
+    h += tile("Pieces", String(pieces));
+    h += tile("Tills", String(tillItems.length));
+    h += "</div>";
     h += '<div class="body">';
     if (top) {
-      h += '<div class="block"><h3>What the drops say</h3><ul><li>' + escapeHtml(top.label) + " is the heavy till.</li>";
+      h += '<div class="block"><h3>What the drops say</h3><ul><li>' + escapeHtml(top.label) + " is the heavy till — " + (total ? Math.round(top.v * 100 / total) : 0) + "% of the drop.</li>";
       if (topDay && topDay.v) h += "<li>" + topDay.label + " is the big day for cash pulled.</li>";
+      h += "<li>Bills " + (total ? Math.round(bills * 100 / total) : 0) + "%, loose coin " + (total ? Math.round(coins * 100 / total) : 0) + "%, rolls " + (total ? Math.round(rolls * 100 / total) : 0) + "%.</li>";
       h += "</ul></div>";
     }
     h += '<div class="charts">';
     h += '<section class="block"><h3>Drop by day</h3>' + svgArea(dayItems) + "</section>";
     h += '<section class="block"><h3>Drop by till</h3>' + svgBars(tillItems, "var(--navy)") + "</section>";
     h += '<section class="block"><h3>Weekday mix</h3>' + svgBars(wdItems, "var(--navy-mid)") + "</section>";
-    h += '<section class="block"><h3>What you pull</h3>' + svgBars(denomItems, "var(--input-edge)") + "</section>";
-    h += "</div></div></article>";
+    h += '<section class="block"><h3>What you pull</h3>' + svgBars(chartDenoms, "var(--input-edge)") + "</section>";
+    h += "</div>";
+    function table(title, heads, rows) {
+      var s = '<section class="block"><h3>' + escapeHtml(title) + '</h3><div style="overflow:auto;max-height:320px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>';
+      heads.forEach(function (hd) { s += '<th style="text-align:left;padding:4px 6px;position:sticky;top:0;background:var(--sheet)">' + escapeHtml(hd) + "</th>"; });
+      s += "</tr></thead><tbody>";
+      rows.forEach(function (row) {
+        s += "<tr>";
+        row.forEach(function (cell) { s += '<td style="padding:3px 6px;border-top:1px solid var(--grid);font-family:ui-monospace,monospace">' + escapeHtml(cell) + "</td>"; });
+        s += "</tr>";
+      });
+      return s + "</tbody></table></div></section>";
+    }
+    h += table("Till ledger", ["Till", "Drop", "Share"], tillItems.map(function (it) {
+      return [it.label, formatMoney(it.v), (total ? Math.round(it.v * 100 / total) : 0) + "%"];
+    }));
+    h += table("Denomination ledger", ["Denom", "Kind", "Dollars", "Share", "Pieces"], denomItems.map(function (it) {
+      return [it.label, it.kind, formatMoney(it.v), (total ? Math.round(it.v * 100 / total) : 0) + "%", String(it.pcs)];
+    }));
+    h += table("Weekday ledger", ["Day", "Drop", "Share"], wdItems.map(function (it) {
+      return [it.label, formatMoney(it.v), (total ? Math.round(it.v * 100 / total) : 0) + "%"];
+    }));
+    h += table("Day ledger", ["Date", "Drop"], dayItems.slice().reverse().map(function (it) {
+      return [it.label, formatMoney(it.v)];
+    }));
+    var log = events.slice().reverse();
+    h += table("Clear log", ["When", "Till", "Drop"], log.map(function (e) {
+      var d = new Date(e.at);
+      var till = state.names[e.registerIndex] || ("R" + (e.registerIndex + 1));
+      return [d.toLocaleString(), till, formatMoney(e.dropCents)];
+    }));
+    h += "</div></article>";
     return h;
   }
   function escapeHtml(s) {

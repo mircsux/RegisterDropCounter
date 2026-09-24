@@ -846,6 +846,24 @@ void DrawLine(HDC dc, RECT box, const std::vector<rdc::ChartItem>& items, COLORR
   }
 }
 
+int gStatsScroll = 0;
+int gStatsDocH = 0;
+
+void UpdateStatsScroll(HWND h) {
+  RECT rc{};
+  GetClientRect(h, &rc);
+  if (gStatsScroll > gStatsDocH - rc.bottom) gStatsScroll = rdc::MaxI(0, gStatsDocH - rc.bottom);
+  if (gStatsScroll < 0) gStatsScroll = 0;
+  SCROLLINFO si{};
+  si.cbSize = sizeof(si);
+  si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+  si.nMin = 0;
+  si.nMax = rdc::MaxI(rc.bottom, gStatsDocH);
+  si.nPage = rc.bottom;
+  si.nPos = gStatsScroll;
+  SetScrollInfo(h, SB_VERT, &si, TRUE);
+}
+
 void PaintStats(HWND h, HDC dc) {
   RECT rc{};
   GetClientRect(h, &rc);
@@ -864,7 +882,7 @@ void PaintStats(HWND h, HDC dc) {
   auto stats = rdc::BuildNerdStats(gHistory, gNames);
   const int pad = 16;
   const int closeH = 32;
-  int y = 104;
+  int y = 104 - gStatsScroll;
 
   if (stats.clearCount == 0) {
     RECT empty{pad, y, W - pad, H - pad - closeH - 16};
@@ -873,19 +891,32 @@ void PaintStats(HWND h, HDC dc) {
     DrawTxt(dc, empty,
             L"History is empty. Count a till, then Clear. Each real clear becomes a point on the charts.",
             kMuted, gFont, DT_LEFT | DT_WORDBREAK);
+    FillRect(dc, &band, Brush(kNavy));
+    DrawTxt(dc, t, L"Stats for Nerds", RGB(255, 255, 255), gFontBold, DT_LEFT | DT_SINGLELINE);
+    DrawTxt(dc, sub,
+            L"Drop is the cash pulled so each drawer resets to base. Sample fills stay out of History, so they stay off these charts.",
+            RGB(220, 240, 236), gFont, DT_LEFT | DT_WORDBREAK);
+    gStatsDocH = H;
     return;
   }
 
   const int tileH = 70;
   const int gap = 10;
   const int tileW = (W - pad * 2 - gap * 3) / 4;
-  wchar_t tiles[4][80];
+  wchar_t tiles[8][80];
   swprintf(tiles[0], 80, L"Drop in History\n%s", rdc::Money(stats.totalDropCents).c_str());
   swprintf(tiles[1], 80, L"Clears\n%d", stats.clearCount);
   swprintf(tiles[2], 80, L"Average drop\n%s", rdc::Money(stats.avgDropCents).c_str());
   swprintf(tiles[3], 80, L"This week\n%s", rdc::Money(stats.weekDropCents).c_str());
-  for (int i = 0; i < 4; ++i) {
-    RECT tile{pad + i * (tileW + gap), y, pad + i * (tileW + gap) + tileW, y + tileH};
+  swprintf(tiles[4], 80, L"Median\n%s", rdc::Money(stats.medianDropCents).c_str());
+  swprintf(tiles[5], 80, L"Biggest drop\n%s", rdc::Money(stats.maxDropCents).c_str());
+  swprintf(tiles[6], 80, L"Tills used\n%d", stats.tillCount);
+  swprintf(tiles[7], 80, L"Days\n%d", stats.dayCount);
+  for (int i = 0; i < 8; ++i) {
+    const int col = i % 4;
+    const int row = i / 4;
+    RECT tile{pad + col * (tileW + gap), y + row * (tileH + gap),
+              pad + col * (tileW + gap) + tileW, y + row * (tileH + gap) + tileH};
     FillRound(dc, tile, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
     RECT cap{tile.left + 10, tile.top + 8, tile.right - 10, tile.top + 28};
     RECT val{tile.left + 10, tile.top + 30, tile.right - 10, tile.bottom - 8};
@@ -896,7 +927,7 @@ void PaintStats(HWND h, HDC dc) {
       DrawTxt(dc, val, nl + 1, kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE);
     }
   }
-  y += tileH + 12;
+  y += tileH * 2 + gap + 12;
 
   if (!stats.insights.empty()) {
     const int insH = 22 + (int)stats.insights.size() * 20;
@@ -915,8 +946,7 @@ void PaintStats(HWND h, HDC dc) {
     y += insH + 12;
   }
 
-  const int chartBottom = H - pad - closeH - 12;
-  const int chartH = rdc::MaxI(80, (chartBottom - y - gap) / 2);
+  const int chartH = 150;
   const int chartW = (W - pad * 2 - gap) / 2;
   struct ChartBox {
     const wchar_t* title;
@@ -944,6 +974,27 @@ void PaintStats(HWND h, HDC dc) {
     else
       DrawBars(dc, plot, *charts[i].items, charts[i].color);
   }
+  y += chartH * 2 + gap + 12;
+  if (!stats.facts.empty()) {
+    const int factH = 28 + (int)stats.facts.size() * 18;
+    RECT box{pad, y, W - pad, y + factH};
+    FillRound(dc, box, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
+    RECT hdg{box.left + 12, box.top + 6, box.right - 12, box.top + 24};
+    DrawTxt(dc, hdg, L"The whole ledger", kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE);
+    int fy = box.top + 28;
+    for (const auto& line : stats.facts) {
+      RECT lr{box.left + 12, fy, box.right - 12, fy + 18};
+      DrawTxt(dc, lr, line.c_str(), kInk, gFont, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+      fy += 18;
+    }
+    y += factH + 12;
+  }
+  gStatsDocH = y + gStatsScroll + closeH + 24;
+  FillRect(dc, &band, Brush(kNavy));
+  DrawTxt(dc, t, L"Stats for Nerds", RGB(255, 255, 255), gFontBold, DT_LEFT | DT_SINGLELINE);
+  DrawTxt(dc, sub,
+          L"Drop is the cash pulled so each drawer resets to base. Sample fills stay out of History, so they stay off these charts.",
+          RGB(220, 240, 236), gFont, DT_LEFT | DT_WORDBREAK);
 }
 
 LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
@@ -962,6 +1013,7 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       HBITMAP bm = CreateCompatibleBitmap(dc, rc.right, rc.bottom);
       HGDIOBJ old = SelectObject(mem, bm);
       PaintStats(h, mem);
+      UpdateStatsScroll(h);
       BitBlt(dc, 0, 0, rc.right, rc.bottom, mem, 0, 0, SRCCOPY);
       SelectObject(mem, old);
       DeleteObject(bm);
@@ -975,6 +1027,34 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       HWND btn = GetDlgItem(h, IDC_N_CLOSE);
       if (btn)
         ::SetWindowPos(btn, nullptr, (rc.right - 90) / 2, rc.bottom - 16 - 28, 90, 28, SWP_NOZORDER);
+      InvalidateRect(h, nullptr, FALSE);
+      UpdateStatsScroll(h);
+      return 0;
+    }
+    case WM_VSCROLL: {
+      SCROLLINFO si{};
+      si.cbSize = sizeof(si);
+      si.fMask = SIF_ALL;
+      GetScrollInfo(h, SB_VERT, &si);
+      int code = LOWORD(w);
+      int y = si.nPos;
+      RECT rc{};
+      GetClientRect(h, &rc);
+      if (code == SB_LINEUP) y -= 48;
+      else if (code == SB_LINEDOWN) y += 48;
+      else if (code == SB_PAGEUP) y -= (int)si.nPage;
+      else if (code == SB_PAGEDOWN) y += (int)si.nPage;
+      else if (code == SB_THUMBTRACK || code == SB_THUMBPOSITION) y = si.nTrackPos;
+      else if (code == SB_TOP) y = 0;
+      gStatsScroll = y;
+      UpdateStatsScroll(h);
+      InvalidateRect(h, nullptr, FALSE);
+      return 0;
+    }
+    case WM_MOUSEWHEEL: {
+      int delta = GET_WHEEL_DELTA_WPARAM(w);
+      gStatsScroll -= (delta / 120) * 64;
+      UpdateStatsScroll(h);
       InvalidateRect(h, nullptr, FALSE);
       return 0;
     }
@@ -995,6 +1075,7 @@ LRESULT CALLBACK StatsProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       return 0;
     case WM_DESTROY:
       gStats = nullptr;
+      gStatsScroll = 0;
       return 0;
   }
   return DefWindowProcW(h, msg, w, l);
@@ -1022,7 +1103,7 @@ void ShowStats(HWND owner) {
   RECT rc;
   GetWindowRect(owner, &rc);
   gStats = CreateWindowExW(WS_EX_APPWINDOW, kStatsClass, L"Stats for Nerds",
-                           WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 40, rc.top + 30, 1000,
+                           WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_CLIPCHILDREN, rc.left + 40, rc.top + 30, 1000,
                            740, owner, nullptr, gInst, nullptr);
   wchar_t title[80];
   swprintf(title, 80, L"Stats for Nerds  %s", rdc::kAppVersion);

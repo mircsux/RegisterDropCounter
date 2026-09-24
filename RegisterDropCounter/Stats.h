@@ -36,6 +36,7 @@ struct NerdStats {
   int weekDeltaPct = 0;  // 0 if no prior week
   bool hasWeekDelta = false;
   std::vector<std::wstring> insights;
+  std::vector<std::wstring> facts;
   std::vector<ChartItem> byDay;
   std::vector<ChartItem> byTill;
   std::vector<ChartItem> byWeekday;
@@ -159,14 +160,30 @@ inline NerdStats BuildNerdStats(const std::vector<HistoryEntry>& hist,
     return nullptr;
   };
 
+  int tillClears[kRegisterCount]{};
+  int denomPieces[DenomCount]{};
+  int pieces = 0;
+  int billCents = 0;
+  int coinCents = 0;
+  int rollCents = 0;
+  int minDrop = 0;
+
   for (const auto& e : events) {
     s.totalDropCents += e.dropCents;
     drops.push_back(e.dropCents);
+    if (minDrop == 0 || e.dropCents < minDrop) minDrop = e.dropCents;
     tillCents[e.registerIndex] += e.dropCents;
+    tillClears[e.registerIndex] += 1;
     weekdayCents[LocalTm(e.at).tm_wday] += e.dropCents;
     for (int d = 0; d < DenomCount; ++d) {
-      int c = e.drop.n[d] * kCents[d];
+      int n = e.drop.n[d];
+      int c = n * kCents[d];
+      pieces += n;
+      denomPieces[d] += n;
       if (c > 0) denomCents[d] += c;
+      if (d <= Quarter) coinCents += c;
+      else if (d <= QRoll) rollCents += c;
+      else billCents += c;
     }
     const std::wstring key = DateKey(e.at);
     if (auto* day = findDay(key)) {
@@ -284,7 +301,57 @@ inline NerdStats BuildNerdStats(const std::vector<HistoryEntry>& hist,
     swprintf(buf, 180, L"$100s are %d%% of the drop.", pct);
     s.insights.push_back(buf);
   }
-  if (s.insights.size() > 4) s.insights.resize(4);
+  if (s.insights.size() > 8) s.insights.resize(8);
+
+  wchar_t line[256];
+  swprintf(line, 256, L"Min %s    Median %s    Max %s    Avg %s",
+           Money(minDrop).c_str(), Money(s.medianDropCents).c_str(),
+           Money(s.maxDropCents).c_str(), Money(s.avgDropCents).c_str());
+  s.facts.push_back(line);
+  swprintf(line, 256, L"Bills %s    Loose coin %s    Rolls %s    Pieces %d",
+           Money(billCents).c_str(), Money(coinCents).c_str(), Money(rollCents).c_str(), pieces);
+  s.facts.push_back(line);
+  swprintf(line, 256, L"Counted tills %d    Days with a drop %d    Snapshots in the file %d",
+           s.tillCount, s.dayCount, (int)hist.size());
+  s.facts.push_back(line);
+  s.facts.push_back(L"Till ledger");
+  for (int i = 0; i < kRegisterCount; ++i) {
+    if (tillCents[i] <= 0 && tillClears[i] <= 0) continue;
+    int share = s.totalDropCents > 0 ? (int)((long long)tillCents[i] * 100 / s.totalDropCents) : 0;
+    int avg = tillClears[i] ? tillCents[i] / tillClears[i] : 0;
+    swprintf(line, 256, L"  %s    drop %s    share %d%%    clears %d    avg %s",
+             TillLabel(names, i).c_str(), Money(tillCents[i]).c_str(), share, tillClears[i],
+             Money(avg).c_str());
+    s.facts.push_back(line);
+  }
+  s.facts.push_back(L"Denomination ledger");
+  for (int d = 0; d < DenomCount; ++d) {
+    int share = s.totalDropCents > 0 ? (int)((long long)denomCents[d] * 100 / s.totalDropCents) : 0;
+    swprintf(line, 256, L"  %s    %s    share %d%%    pieces %d",
+             DenomChartLabel(d), Money(denomCents[d]).c_str(), share, denomPieces[d]);
+    s.facts.push_back(line);
+  }
+  s.facts.push_back(L"Weekday ledger");
+  for (const auto& d : s.byWeekday) {
+    int share = s.totalDropCents > 0 ? (int)((long long)d.cents * 100 / s.totalDropCents) : 0;
+    swprintf(line, 256, L"  %s    %s    share %d%%", d.label.c_str(), Money(d.cents).c_str(), share);
+    s.facts.push_back(line);
+  }
+  s.facts.push_back(L"Day ledger");
+  for (auto it = s.byDay.rbegin(); it != s.byDay.rend() && s.facts.size() < 80; ++it) {
+    swprintf(line, 256, L"  %s    %s", it->label.c_str(), Money(it->cents).c_str());
+    s.facts.push_back(line);
+  }
+  s.facts.push_back(L"Clear log  (newest first)");
+  int shown = 0;
+  for (auto it = events.rbegin(); it != events.rend() && shown < 60; ++it, ++shown) {
+    wchar_t when[40];
+    std::tm tm = LocalTm(it->at);
+    wcsftime(when, 40, L"%b %d  %I:%M %p", &tm);
+    swprintf(line, 256, L"  %s    %s    %s", when, TillLabel(names, it->registerIndex).c_str(),
+             Money(it->dropCents).c_str());
+    s.facts.push_back(line);
+  }
   return s;
 }
 
