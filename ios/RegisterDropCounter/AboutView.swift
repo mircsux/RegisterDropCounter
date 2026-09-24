@@ -35,6 +35,8 @@ struct AboutView: View {
                         Text("Changelog")
                             .font(.headline)
                             .foregroundStyle(Theme.navyFg)
+                        Text("v2.32.0  Help holds History, Stats for Nerds, and About. Stats lists the full History ledger.")
+                            .foregroundStyle(Theme.ink)
                         Text("v2.31.0  Visual Studio 2022 build compiles after the Windows dark-mode paint path.")
                             .foregroundStyle(Theme.ink)
                         Text("v2.30.0  Windows 10 dark mode paints title bar, buttons, tabs, and lists.")

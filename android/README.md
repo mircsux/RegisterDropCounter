@@ -1,6 +1,6 @@
 # Register Drop Counter for Android
 
-Version **2.31.0** (2026-09-19). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.32.0** (2026-09-23). Designed by Ronald Robbins Jr and SuperGrok.
 
 Kotlin + Jetpack Compose. Same integer-cent drop as the Excel sheet.
 

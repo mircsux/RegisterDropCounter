@@ -462,10 +462,15 @@ const wchar_t kAboutBody[] =
     L"\r\n"
     L"Sample\r\n"
     L"File > Load Sample Drops fills every till with random test counts (0-100 on coins and bills, 0-10 on rolls). Each till's drop stays under $6,000. Those test fills do not go into History.\r\n"
-    L"File > Stats for Nerds charts drop trends from History.\r\n"
+    L"Help > Stats for Nerds lists the full History ledger: spread, tills, denominations, hours, days, and every clear.\r\n"
     L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.32.0  2026-09-23  Stats ledger and Help menu\r\n"
+    L"- Help sits next to File. History, Stats for Nerds, and About live there. File keeps Load Sample Drops and Options.\r\n"
+    L"- Stats for Nerds dumps the whole History: spread, every till, every denomination, every hour, every day, and the clear log.\r\n"
+    L"- Desktop fonts stay 15px Segoe UI and Consolas so they do not shrink when the window resizes.\r\n"
+    L"\r\n"
     L"v2.31.0  2026-09-19  Visual Studio build\r\n"
     L"- Windows desktop app compiles again in Visual Studio 2022 after the dark-mode paint path.\r\n"
     L"\r\n"
