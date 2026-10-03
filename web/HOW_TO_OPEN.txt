@@ -1,4 +1,4 @@
-Register Drop Counter  2.34.0  (2026-10-02)  -  Web (any browser)
+Register Drop Counter  2.35.0  (2026-10-03)  -  Web (any browser)
 
 1. Unzip this folder.
 2. Double-click index.html — it opens in your browser.

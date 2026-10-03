@@ -467,6 +467,10 @@ const wchar_t kAboutBody[] =
     L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.35.0  2026-10-03  Cobalt grey and font size\r\n"
+    L"- Dark mode is a dark cobalt grey, not black.\r\n"
+    L"- Options has a font size list. The default stays 15.\r\n"
+    L"\r\n"
     L"v2.34.0  2026-10-02  Double-click to rename\r\n"
     L"- A single click on a till only switches registers.\r\n"
     L"- Double-click the till name to rename it.\r\n"

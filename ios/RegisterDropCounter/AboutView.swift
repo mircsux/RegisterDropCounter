@@ -35,6 +35,8 @@ struct AboutView: View {
                         Text("Changelog")
                             .font(.headline)
                             .foregroundStyle(Theme.navyFg)
+                        Text("v2.35.0  Dark mode is a dark cobalt grey, not black. Options has a font size list. The default stays 15.")
+                            .foregroundStyle(Theme.ink)
                         Text("v2.34.0  Double-click a till name to rename it. A single click only switches registers.")
                             .foregroundStyle(Theme.ink)
                         Text("v2.33.0  Till keeps the last drop. On counter and Cleared tonight show the deposit. Font list is every installed face. New cash-drawer icon.")
