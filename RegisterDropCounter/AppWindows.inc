@@ -467,6 +467,10 @@ const wchar_t kAboutBody[] =
     L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.37.0  2026-10-03  Color themes\r\n"
+    L"- Options has a color theme list with twelve palettes.\r\n"
+    L"- Count cells stay amber. Drop slips still print black on white.\r\n"
+    L"\r\n"
     L"v2.36.0  2026-10-03  Register totals\r\n"
     L"- Stats for Nerds keeps a running total of cash each register has taken.\r\n"
     L"- The total is every drop plus cash still on the counter. Sample fills stay out.\r\n"
@@ -1199,11 +1203,12 @@ constexpr int IDC_O_LOAD = 9208;
 constexpr int IDC_O_SYNCNOW = 9209;
 constexpr int IDC_O_STATUS = 9210;
 constexpr int IDC_O_CLOSE = 9211;
-constexpr int IDC_O_DARK = 9212;
 constexpr int IDC_O_FONTLBL = 9213;
 constexpr int IDC_O_FONT = 9214;
 constexpr int IDC_O_SIZELBL = 9215;
 constexpr int IDC_O_SIZE = 9216;
+constexpr int IDC_O_THEMELBL = 9217;
+constexpr int IDC_O_THEME = 9218;
 
 const wchar_t kOptHelp[] =
     L"When this is on, Clear and Clear All also write snapshots to a file in your "
@@ -1278,6 +1283,24 @@ void FillFontSizes(HWND combo) {
   }
 }
 
+void FillThemes(HWND combo) {
+  SendMessageW(combo, CB_RESETCONTENT, 0, 0);
+  for (int i = 0; i < rdc::kThemeCount; ++i) {
+    int idx = (int)SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)rdc::kThemes[i].name);
+    if (idx >= 0) SendMessageW(combo, CB_SETITEMDATA, idx, (LPARAM)i);
+  }
+}
+
+void ApplyChosenTheme(int index) {
+  if (index < 0 || index >= rdc::kThemeCount) return;
+  const std::wstring id = rdc::kThemes[index].id;
+  if (id == gOptions.theme) return;
+  gOptions.theme = id;
+  gOptions.darkMode = rdc::kThemes[index].dark;
+  PersistOptions();
+  ApplyTheme();
+}
+
 void ApplyChosenSize(int px) {
   px = rdc::SanitizeFontPx(px);
   if (px == gOptions.fontPx && gFontPx == px) return;
@@ -1289,10 +1312,21 @@ void ApplyChosenSize(int px) {
 }
 
 void RefreshOptionsUi(HWND h) {
-  SendMessageW(GetDlgItem(h, IDC_O_DARK), BM_SETCHECK,
-               gOptions.darkMode ? BST_CHECKED : BST_UNCHECKED, 0);
   SendMessageW(GetDlgItem(h, IDC_O_SYNC), BM_SETCHECK,
                gOptions.syncOneDrive ? BST_CHECKED : BST_UNCHECKED, 0);
+  HWND theme = GetDlgItem(h, IDC_O_THEME);
+  if (theme) {
+    const rdc::ThemePalette& p = rdc::PaletteFor(gOptions.theme);
+    int sel = -1;
+    const int n = (int)SendMessageW(theme, CB_GETCOUNT, 0, 0);
+    for (int i = 0; i < n; ++i) {
+      if ((int)SendMessageW(theme, CB_GETITEMDATA, i, 0) == (&p - rdc::kThemes)) {
+        sel = i;
+        break;
+      }
+    }
+    if (sel >= 0) SendMessageW(theme, CB_SETCURSEL, sel, 0);
+  }
   HWND font = GetDlgItem(h, IDC_O_FONT);
   if (font) {
     const std::wstring face = rdc::SanitizeFontFace(gOptions.fontFace);
@@ -1349,20 +1383,21 @@ void RelayoutOptions(HWND h) {
   if (W < 240 || H < 180) return;
   const int pad = 16;
   const int btnH = 28;
-  HDWP dwp = BeginDeferWindowPos(18);
+  HDWP dwp = BeginDeferWindowPos(20);
   if (!dwp) return;
   Place(&dwp, h, IDC_O_TITLE, pad, 10, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_DARK, pad, 48, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_FONTLBL, pad, 80, 56, 24);
-  Place(&dwp, h, IDC_O_FONT, pad + 60, 76, W - pad * 2 - 60, 280);
-  Place(&dwp, h, IDC_O_SIZELBL, pad, 116, 56, 24);
-  Place(&dwp, h, IDC_O_SIZE, pad + 60, 112, 120, 240);
-  Place(&dwp, h, IDC_O_SYNC, pad, 148, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_HELP, pad, 180, W - pad * 2, 100);
-  Place(&dwp, h, IDC_O_PATHLBL, pad, 288, 80, 22);
-  Place(&dwp, h, IDC_O_PATH, pad + 84, 284, W - pad * 2 - 84 - 128, 28);
-  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 284, 120, 28);
-  const int yAct = 328;
+  Place(&dwp, h, IDC_O_THEMELBL, pad, 48, 70, 24);
+  Place(&dwp, h, IDC_O_THEME, pad + 74, 44, W - pad * 2 - 74, 320);
+  Place(&dwp, h, IDC_O_FONTLBL, pad, 84, 56, 24);
+  Place(&dwp, h, IDC_O_FONT, pad + 60, 80, W - pad * 2 - 60, 280);
+  Place(&dwp, h, IDC_O_SIZELBL, pad, 120, 56, 24);
+  Place(&dwp, h, IDC_O_SIZE, pad + 60, 116, 120, 240);
+  Place(&dwp, h, IDC_O_SYNC, pad, 156, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_HELP, pad, 188, W - pad * 2, 92);
+  Place(&dwp, h, IDC_O_PATHLBL, pad, 292, 80, 22);
+  Place(&dwp, h, IDC_O_PATH, pad + 84, 288, W - pad * 2 - 84 - 128, 28);
+  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 288, 120, 28);
+  const int yAct = 332;
   Place(&dwp, h, IDC_O_SAVE, pad, yAct, 150, btnH);
   Place(&dwp, h, IDC_O_LOAD, pad + 158, yAct, 160, btnH);
   Place(&dwp, h, IDC_O_SYNCNOW, pad + 326, yAct, 100, btnH);
@@ -1376,12 +1411,15 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_CREATE: {
       MakeStatic(h, IDC_O_TITLE, L"Options", 16, 10, 400, 24, SS_LEFT);
       SendMessageW(GetDlgItem(h, IDC_O_TITLE), WM_SETFONT, (WPARAM)gFontBold, TRUE);
-      HWND dark = CreateWindowW(L"BUTTON", L"Dark mode",
-                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 52, 400,
-                                24, h, (HMENU)(INT_PTR)IDC_O_DARK, gInst, nullptr);
-      SendMessageW(dark, WM_SETFONT, (WPARAM)gFont, TRUE);
-      Untheme(dark);
-      MakeStatic(h, IDC_O_FONTLBL, L"Font", 16, 80, 56, 24, SS_LEFT);
+      MakeStatic(h, IDC_O_THEMELBL, L"Theme", 16, 48, 70, 24, SS_LEFT);
+      HWND theme = CreateWindowW(
+          L"COMBOBOX", L"",
+          WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_HASSTRINGS,
+          90, 44, 360, 320, h, (HMENU)(INT_PTR)IDC_O_THEME, gInst, nullptr);
+      FillThemes(theme);
+      SendMessageW(theme, WM_SETFONT, (WPARAM)gFont, TRUE);
+      Untheme(theme);
+      MakeStatic(h, IDC_O_FONTLBL, L"Font", 16, 84, 56, 24, SS_LEFT);
       HWND font = CreateWindowW(
           L"COMBOBOX", L"",
           WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED |
@@ -1462,10 +1500,9 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_COMMAND: {
       int id = LOWORD(w);
       int code = HIWORD(w);
-      if (id == IDC_O_DARK) {
-        gOptions.darkMode = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
-        PersistOptions();
-        ApplyTheme();
+      if (id == IDC_O_THEME && code == CBN_SELCHANGE) {
+        int sel = (int)SendMessageW((HWND)l, CB_GETCURSEL, 0, 0);
+        if (sel >= 0) ApplyChosenTheme((int)SendMessageW((HWND)l, CB_GETITEMDATA, sel, 0));
       } else if (id == IDC_O_FONT && code == CBN_SELCHANGE) {
         wchar_t buf[LF_FACESIZE];
         int sel = (int)SendMessageW((HWND)l, CB_GETCURSEL, 0, 0);

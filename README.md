@@ -2,7 +2,7 @@
 
 A counting tool for cash drawers. Open `RegisterDropCounter.sln` in Visual Studio 2022.
 
-Version **2.36.0** (2026-10-03). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.37.0** (2026-10-03). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open in Visual Studio
 

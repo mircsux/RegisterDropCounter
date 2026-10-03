@@ -8,11 +8,15 @@ struct OptionsView: View {
         NavigationStack {
             Form {
                 Section("Appearance") {
-                    Toggle("Dark mode", isOn: Binding(
-                        get: { model.darkMode },
-                        set: { model.setDarkMode($0) }
-                    ))
-                    Text("Dark mode is a dark cobalt grey, not black. Count cells stay amber.")
+                    Picker("Color theme", selection: Binding(
+                        get: { model.theme },
+                        set: { model.setTheme($0) }
+                    )) {
+                        ForEach(ThemeCatalog.all, id: \.id) { item in
+                            Text(item.name).tag(item.id)
+                        }
+                    }
+                    Text("Twelve themes. Count cells stay amber. Drop slips still print black on white.")
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
                 }

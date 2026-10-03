@@ -1,7 +1,7 @@
 #pragma once
 // OneDrive history folder: write the same RDCH1 file the OneDrive client syncs.
 
-#include "History.h"
+#include "Themes.h"
 
 #include <shlobj.h>
 
@@ -16,6 +16,7 @@ namespace rdc {
 struct Options {
   bool syncOneDrive = false;
   bool darkMode = false;
+  std::wstring theme = L"classic";
   std::wstring fontFace = L"Segoe UI";
   int fontPx = 15;
   std::wstring folder;  // empty = auto-detect OneDrive\RegisterDropCounter
@@ -173,6 +174,8 @@ inline bool SaveOptions(const std::wstring& path, const Options& o) {
   body += L"\n";
   body += std::to_wstring(SanitizeFontPx(o.fontPx));
   body += L"\n";
+  body += SanitizeTheme(o.theme, o.darkMode);
+  body += L"\n";
   const std::string utf8 = std::string("\xEF\xBB\xBF") + WideToUtf8(body);
   HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
                             nullptr);
@@ -187,6 +190,7 @@ inline bool SaveOptions(const std::wstring& path, const Options& o) {
 inline bool LoadOptions(const std::wstring& path, Options* o) {
   o->syncOneDrive = false;
   o->darkMode = false;
+  o->theme = L"classic";
   o->fontFace = L"Segoe UI";
   o->fontPx = 15;
   o->folder.clear();
@@ -209,19 +213,19 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
   if (!ok) return false;
   bytes.resize(got);
   const std::wstring text = BytesToWide(bytes);
-  std::wstring lines[6];
+  std::wstring lines[8];
   int n = 0;
   std::wstring cur;
   for (wchar_t c : text) {
     if (c == L'\n') {
       if (!cur.empty() && cur.back() == L'\r') cur.pop_back();
-      if (n < 6) lines[n++] = cur;
+      if (n < 8) lines[n++] = cur;
       cur.clear();
     } else {
       cur.push_back(c);
     }
   }
-  if (!cur.empty() && n < 6) {
+  if (!cur.empty() && n < 8) {
     if (cur.back() == L'\r') cur.pop_back();
     lines[n++] = cur;
   }
@@ -242,6 +246,9 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
     }
     o->fontPx = SanitizeFontPx(ok ? px : 0);
   }
+  if (n > 6) o->theme = SanitizeTheme(lines[6], o->darkMode);
+  else o->theme = o->darkMode ? L"cobalt" : L"classic";
+  o->darkMode = PaletteFor(o->theme).dark;
   return true;
 #endif
 }

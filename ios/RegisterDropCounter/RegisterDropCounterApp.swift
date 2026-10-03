@@ -6,10 +6,12 @@ struct RegisterDropCounterApp: App {
 
     var body: some Scene {
         WindowGroup {
+            let palette = ThemeCatalog.select(model.theme, dark: model.darkMode)
             ContentView()
+                .id(palette.id)
                 .environmentObject(model)
                 .tint(Theme.navy)
-                .preferredColorScheme(model.darkMode ? .dark : .light)
+                .preferredColorScheme(palette.dark ? .dark : .light)
         }
     }
 }

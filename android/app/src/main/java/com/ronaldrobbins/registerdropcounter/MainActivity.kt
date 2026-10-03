@@ -38,8 +38,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DropCounterApp(model: AppModel = viewModel()) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    RdcColor.dark = model.darkMode
-    val scheme = if (model.darkMode) {
+    val palette = RdcThemes.byId(model.theme, model.darkMode)
+    RdcColor.themeId = palette.id
+    val scheme = if (palette.dark) {
         darkColorScheme(
             background = RdcColor.sheet,
             surface = RdcColor.paper,

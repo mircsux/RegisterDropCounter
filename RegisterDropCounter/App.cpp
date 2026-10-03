@@ -32,6 +32,7 @@
 #include "History.h"
 #include "OneDrive.h"
 #include "Stats.h"
+#include "Themes.h"
 #include "Version.h"
 #include "resource.h"
 
@@ -211,45 +212,26 @@ BOOL CALLBACK StampChildFont(HWND child, LPARAM font) {
 }
 
 void ApplyTheme() {
-  if (gOptions.darkMode) {
-    kNavy = RGB(26, 51, 82);
-    kNavyMid = RGB(46, 85, 128);
-    kNavyDeep = RGB(21, 40, 68);
-    kOnNavy = RGB(231, 246, 242);
-    kSheet = RGB(27, 42, 61);
-    kPaper = RGB(36, 54, 76);
-    kInk = RGB(231, 246, 242);
-    kNavyFg = RGB(110, 231, 212);
-    kMuted = RGB(143, 179, 174);
-    kGrid = RGB(60, 85, 112);
-    kInput = RGB(245, 197, 66);
-    kComputed = RGB(30, 48, 68);
-    kOk = RGB(13, 63, 53);
-    kBad = RGB(77, 31, 40);
-    kDropHit = RGB(21, 86, 74);
-    kCellInk = RGB(28, 20, 6);
-    kOkInk = RGB(110, 240, 200);
-    kBadInk = RGB(255, 176, 188);
-  } else {
-    kNavy = RGB(31, 78, 121);
-    kNavyMid = RGB(46, 117, 182);
-    kNavyDeep = RGB(22, 58, 95);
-    kOnNavy = RGB(247, 251, 255);
-    kSheet = RGB(238, 241, 244);
-    kPaper = RGB(255, 255, 255);
-    kInk = RGB(26, 36, 46);
-    kNavyFg = RGB(31, 78, 121);
-    kMuted = RGB(92, 107, 122);
-    kGrid = RGB(197, 208, 219);
-    kInput = RGB(255, 244, 194);
-    kComputed = RGB(248, 228, 212);
-    kOk = RGB(198, 239, 206);
-    kBad = RGB(255, 199, 206);
-    kDropHit = RGB(214, 234, 223);
-    kCellInk = RGB(26, 36, 46);
-    kOkInk = RGB(0, 97, 0);
-    kBadInk = RGB(156, 0, 6);
-  }
+  const rdc::ThemePalette& p = rdc::PaletteFor(gOptions.theme);
+  gOptions.darkMode = p.dark;
+  kNavy = p.navy;
+  kNavyMid = p.navyMid;
+  kNavyDeep = p.navyDeep;
+  kOnNavy = p.onNavy;
+  kSheet = p.sheet;
+  kPaper = p.paper;
+  kInk = p.ink;
+  kNavyFg = p.navyFg;
+  kMuted = p.muted;
+  kGrid = p.grid;
+  kInput = p.input;
+  kComputed = p.computed;
+  kOk = p.ok;
+  kBad = p.bad;
+  kDropHit = p.dropHit;
+  kCellInk = p.cellInk;
+  kOkInk = p.okInk;
+  kBadInk = p.badInk;
   RebuildBrushes();
   gFontPx = 0;
   RecreateFonts();

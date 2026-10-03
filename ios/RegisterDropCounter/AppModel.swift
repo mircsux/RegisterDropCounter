@@ -12,9 +12,10 @@ final class AppModel: ObservableObject {
     @Published var bag = ""
     @Published var initials = ""
     @Published var darkMode = false
+    @Published var theme = "classic"
     private var sampleScratch = false
 
-    static let version = "2.36.0"
+    static let version = "2.37.0"
     static let releaseDate = "2026-10-03"
 
     private let historyLimit = 200
@@ -143,9 +144,16 @@ final class AppModel: ObservableObject {
 
     func saveSlipFields() { persistSlip() }
 
+    func setTheme(_ id: String) {
+        let p = ThemeCatalog.byId(id, dark: darkMode)
+        theme = p.id
+        darkMode = p.dark
+        UserDefaults.standard.set(p.id, forKey: "rdc.theme")
+        UserDefaults.standard.set(p.dark, forKey: "rdc.darkMode")
+    }
+
     func setDarkMode(_ on: Bool) {
-        darkMode = on
-        UserDefaults.standard.set(on, forKey: "rdc.darkMode")
+        setTheme(on ? "cobalt" : "classic")
     }
 
     private func load() {
@@ -170,7 +178,11 @@ final class AppModel: ObservableObject {
         }
         bag = UserDefaults.standard.string(forKey: "rdc.bag") ?? ""
         initials = UserDefaults.standard.string(forKey: "rdc.initials") ?? ""
-        darkMode = UserDefaults.standard.bool(forKey: "rdc.darkMode")
+        let savedDark = UserDefaults.standard.bool(forKey: "rdc.darkMode")
+        let saved = UserDefaults.standard.string(forKey: "rdc.theme") ?? ""
+        let p = ThemeCatalog.byId(saved, dark: savedDark)
+        theme = p.id
+        darkMode = p.dark
     }
 }
 

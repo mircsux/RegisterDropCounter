@@ -1,8 +1,8 @@
-/* Register Drop Counter 2.36.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
+/* Register Drop Counter 2.37.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
 (function () {
   "use strict";
 
-  var VERSION = "2.36.0";
+  var VERSION = "2.37.0";
   var RELEASE = "2026-10-03";
   var SUGGESTED_FONTS = [
     "Segoe UI", "Arial", "Calibri", "Candara", "Verdana", "Tahoma", "Trebuchet MS",
@@ -30,6 +30,352 @@
     var n = parseInt(raw, 10);
     return FONT_SIZES.indexOf(n) >= 0 ? n : 15;
   }
+
+  function themeById(id, dark) {
+    for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === id) return THEMES[i];
+    return THEMES[dark ? 1 : 0];
+  }
+  function applyThemeColors(theme) {
+    var root = document.documentElement;
+    var map = {
+      "--navy": theme.navy, "--navy-mid": theme.navyMid, "--navy-deep": theme.navyDeep,
+      "--navy-ink": theme.navyInk, "--navy-fg": theme.navyFg, "--on-navy": theme.onNavy,
+      "--sheet": theme.sheet, "--paper": theme.paper, "--grid": theme.grid,
+      "--input": theme.input, "--input-edge": theme.inputEdge, "--cell-ink": theme.cellInk,
+      "--computed": theme.computed, "--ok": theme.ok, "--ok-ink": theme.okInk,
+      "--bad": theme.bad, "--bad-ink": theme.badInk, "--drop-hit": theme.dropHit,
+      "--muted": theme.muted, "--ink": theme.ink, "--theme-glow": theme.glow, "--theme-line": theme.line
+    };
+    Object.keys(map).forEach(function (k) { root.style.setProperty(k, map[k]); });
+    root.classList.toggle("dark", !!theme.dark);
+    root.style.colorScheme = theme.dark ? "dark" : "light";
+  }
+    var THEMES = [
+      {
+        "id": "classic",
+        "name": "Classic Navy",
+        "dark": false,
+        "navy": "#1f4e79",
+        "navyMid": "#2e75b6",
+        "navyDeep": "#163a5f",
+        "navyInk": "#0f2740",
+        "navyFg": "#1f4e79",
+        "onNavy": "#f7fbff",
+        "sheet": "#eef1f4",
+        "paper": "#ffffff",
+        "grid": "#c5d0db",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f8e4d4",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#5c6b7a",
+        "ink": "#1a242e",
+        "glow": "rgb(46 117 182 / 0.18)",
+        "line": "rgb(31 78 121 / 0.28)"
+      },
+      {
+        "id": "cobalt",
+        "name": "Cobalt Night",
+        "dark": true,
+        "navy": "#1a3352",
+        "navyMid": "#2e5580",
+        "navyDeep": "#152844",
+        "navyInk": "#152232",
+        "navyFg": "#6ee7d4",
+        "onNavy": "#e7f6f2",
+        "sheet": "#1b2a3d",
+        "paper": "#24364c",
+        "grid": "#3c5570",
+        "input": "#f5c542",
+        "inputEdge": "#ffe08a",
+        "cellInk": "#1c1406",
+        "computed": "#1e3044",
+        "ok": "#0d3f35",
+        "okInk": "#6ef0c8",
+        "bad": "#4d1f28",
+        "badInk": "#ffb0bc",
+        "dropHit": "#15564a",
+        "muted": "#8fb3ae",
+        "ink": "#e7f6f2",
+        "glow": "rgb(46 90 150 / 0.32)",
+        "line": "rgb(110 231 212 / 0.28)"
+      },
+      {
+        "id": "forest",
+        "name": "Evergreen",
+        "dark": false,
+        "navy": "#1b4d3e",
+        "navyMid": "#2f7d62",
+        "navyDeep": "#14382e",
+        "navyInk": "#0e2820",
+        "navyFg": "#1b4d3e",
+        "onNavy": "#f4fbf7",
+        "sheet": "#eef6f1",
+        "paper": "#ffffff",
+        "grid": "#c3d9cc",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f3e6d4",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#5c7268",
+        "ink": "#1a2a24",
+        "glow": "rgb(47 125 98 / 0.18)",
+        "line": "rgb(27 77 62 / 0.28)"
+      },
+      {
+        "id": "pine",
+        "name": "Pine Night",
+        "dark": true,
+        "navy": "#1a3d32",
+        "navyMid": "#2f6b56",
+        "navyDeep": "#132e26",
+        "navyInk": "#0e221c",
+        "navyFg": "#9ee6c8",
+        "onNavy": "#e7f6ee",
+        "sheet": "#14241e",
+        "paper": "#1d332a",
+        "grid": "#3d5c4e",
+        "input": "#f5c542",
+        "inputEdge": "#ffe08a",
+        "cellInk": "#1c1406",
+        "computed": "#24382f",
+        "ok": "#0d3f35",
+        "okInk": "#6ef0c8",
+        "bad": "#4d1f28",
+        "badInk": "#ffb0bc",
+        "dropHit": "#15564a",
+        "muted": "#9cb8aa",
+        "ink": "#e7f6ee",
+        "glow": "rgb(47 107 86 / 0.34)",
+        "line": "rgb(158 230 200 / 0.28)"
+      },
+      {
+        "id": "burgundy",
+        "name": "Burgundy",
+        "dark": false,
+        "navy": "#7a2438",
+        "navyMid": "#a33d56",
+        "navyDeep": "#5c1a2a",
+        "navyInk": "#3d101c",
+        "navyFg": "#7a2438",
+        "onNavy": "#fff7f8",
+        "sheet": "#f7f0f2",
+        "paper": "#ffffff",
+        "grid": "#e4cfd6",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f8e4d4",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#7a6570",
+        "ink": "#2a1c22",
+        "glow": "rgb(163 61 86 / 0.16)",
+        "line": "rgb(122 36 56 / 0.28)"
+      },
+      {
+        "id": "wine",
+        "name": "Wine Night",
+        "dark": true,
+        "navy": "#4a2030",
+        "navyMid": "#7a3a50",
+        "navyDeep": "#341622",
+        "navyInk": "#241018",
+        "navyFg": "#f0b4c4",
+        "onNavy": "#fbeff2",
+        "sheet": "#24161c",
+        "paper": "#322028",
+        "grid": "#5c3a48",
+        "input": "#f5c542",
+        "inputEdge": "#ffe08a",
+        "cellInk": "#1c1406",
+        "computed": "#3a2830",
+        "ok": "#0d3f35",
+        "okInk": "#6ef0c8",
+        "bad": "#4d1f28",
+        "badInk": "#ffb0bc",
+        "dropHit": "#15564a",
+        "muted": "#c4a8b0",
+        "ink": "#fbeff2",
+        "glow": "rgb(122 58 80 / 0.32)",
+        "line": "rgb(240 180 196 / 0.28)"
+      },
+      {
+        "id": "ocean",
+        "name": "Lagoon",
+        "dark": false,
+        "navy": "#0e6b7a",
+        "navyMid": "#1a9aab",
+        "navyDeep": "#0a4e59",
+        "navyInk": "#07363e",
+        "navyFg": "#0e6b7a",
+        "onNavy": "#f3fbfc",
+        "sheet": "#eef7f8",
+        "paper": "#ffffff",
+        "grid": "#c5dde2",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f6e6d6",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#5a7278",
+        "ink": "#163034",
+        "glow": "rgb(26 154 171 / 0.18)",
+        "line": "rgb(14 107 122 / 0.28)"
+      },
+      {
+        "id": "harbor",
+        "name": "Harbor Night",
+        "dark": true,
+        "navy": "#0e3d48",
+        "navyMid": "#1a6a78",
+        "navyDeep": "#0a2c34",
+        "navyInk": "#071e24",
+        "navyFg": "#7ee0e8",
+        "onNavy": "#e7f7f8",
+        "sheet": "#10282e",
+        "paper": "#183840",
+        "grid": "#2f5c66",
+        "input": "#f5c542",
+        "inputEdge": "#ffe08a",
+        "cellInk": "#1c1406",
+        "computed": "#1c4048",
+        "ok": "#0d3f35",
+        "okInk": "#6ef0c8",
+        "bad": "#4d1f28",
+        "badInk": "#ffb0bc",
+        "dropHit": "#15564a",
+        "muted": "#9ec4c8",
+        "ink": "#e7f7f8",
+        "glow": "rgb(26 106 120 / 0.34)",
+        "line": "rgb(126 224 232 / 0.28)"
+      },
+      {
+        "id": "plum",
+        "name": "Plum",
+        "dark": false,
+        "navy": "#5c3d7a",
+        "navyMid": "#7d5aa3",
+        "navyDeep": "#432c5c",
+        "navyInk": "#2e1d40",
+        "navyFg": "#5c3d7a",
+        "onNavy": "#faf7fc",
+        "sheet": "#f4f0f8",
+        "paper": "#ffffff",
+        "grid": "#d8cfe6",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f6e4d8",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#6e6578",
+        "ink": "#261c30",
+        "glow": "rgb(125 90 163 / 0.18)",
+        "line": "rgb(92 61 122 / 0.28)"
+      },
+      {
+        "id": "ink",
+        "name": "Violet Ink",
+        "dark": true,
+        "navy": "#3a2a58",
+        "navyMid": "#5c4588",
+        "navyDeep": "#281c40",
+        "navyInk": "#1c142e",
+        "navyFg": "#d4c4f5",
+        "onNavy": "#f4effc",
+        "sheet": "#1c1628",
+        "paper": "#282036",
+        "grid": "#4a3c64",
+        "input": "#f5c542",
+        "inputEdge": "#ffe08a",
+        "cellInk": "#1c1406",
+        "computed": "#322848",
+        "ok": "#0d3f35",
+        "okInk": "#6ef0c8",
+        "bad": "#4d1f28",
+        "badInk": "#ffb0bc",
+        "dropHit": "#15564a",
+        "muted": "#b8a8cc",
+        "ink": "#f4effc",
+        "glow": "rgb(92 69 136 / 0.34)",
+        "line": "rgb(212 196 245 / 0.28)"
+      },
+      {
+        "id": "sunrise",
+        "name": "Sunrise",
+        "dark": false,
+        "navy": "#9a4a1c",
+        "navyMid": "#c46a32",
+        "navyDeep": "#6e3414",
+        "navyInk": "#4a220c",
+        "navyFg": "#9a4a1c",
+        "onNavy": "#fff8f3",
+        "sheet": "#fbf4ec",
+        "paper": "#fffdf8",
+        "grid": "#e6d4c4",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f8e0c8",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#7a685c",
+        "ink": "#2c2218",
+        "glow": "rgb(196 106 50 / 0.16)",
+        "line": "rgb(154 74 28 / 0.28)"
+      },
+      {
+        "id": "slate",
+        "name": "Slate",
+        "dark": false,
+        "navy": "#3d4c5c",
+        "navyMid": "#5a7084",
+        "navyDeep": "#2c3844",
+        "navyInk": "#1c242e",
+        "navyFg": "#3d4c5c",
+        "onNavy": "#f7f9fb",
+        "sheet": "#e8ecef",
+        "paper": "#ffffff",
+        "grid": "#c5ced6",
+        "input": "#fff4c2",
+        "inputEdge": "#c9b56a",
+        "cellInk": "#1a242e",
+        "computed": "#f3e4d6",
+        "ok": "#c6efce",
+        "okInk": "#006100",
+        "bad": "#ffc7ce",
+        "badInk": "#9c0006",
+        "dropHit": "#d6eadf",
+        "muted": "#66707a",
+        "ink": "#1e262e",
+        "glow": "rgb(90 112 132 / 0.16)",
+        "line": "rgb(61 76 92 / 0.28)"
+      }
+    ];
   var REGISTER_COUNT = 10;
   var HISTORY_LIMIT = 200;
   var TILL_NAME_MAX = 20;
@@ -502,6 +848,7 @@
     sampleScratch: false,
     font: "Segoe UI",
     fontSize: 15,
+    theme: "classic",
   };
 
   function loadJson(key, fallback) {
@@ -518,7 +865,7 @@
         registers: state.registers,
         sampleScratch: !!state.sampleScratch,
       }));
-      localStorage.setItem(OKEY, JSON.stringify({ darkMode: state.darkMode, font: state.font, fontSize: state.fontSize }));
+      localStorage.setItem(OKEY, JSON.stringify({ darkMode: state.darkMode, font: state.font, fontSize: state.fontSize, theme: state.theme }));
       localStorage.setItem(HKEY, JSON.stringify(state.history));
       localStorage.setItem(NKEY, JSON.stringify(state.names));
     } catch (e) {}
@@ -535,7 +882,8 @@
       state.sampleScratch = !!snap.sampleScratch;
     }
     var opt = loadJson(OKEY, {});
-    state.darkMode = !!opt.darkMode;
+    state.theme = themeById(opt.theme, !!opt.darkMode).id;
+    state.darkMode = themeById(state.theme).dark;
     state.font = cleanFont(opt.font);
     state.fontSize = cleanSize(opt.fontSize);
     var hist = loadJson(HKEY, []);
@@ -547,8 +895,10 @@
     applyTheme();
   }
   function applyTheme() {
-    document.documentElement.classList.toggle("dark", state.darkMode);
-    document.documentElement.style.colorScheme = state.darkMode ? "dark" : "light";
+    var theme = themeById(state.theme, state.darkMode);
+    state.theme = theme.id;
+    state.darkMode = theme.dark;
+    applyThemeColors(theme);
     var stack = fontStack(state.font);
     document.documentElement.style.setProperty("--font", stack);
     document.documentElement.style.setProperty("--mono", stack);
@@ -820,8 +1170,17 @@
       return true;
     }).sort(function (a, b) { return a.localeCompare(b); });
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7;text-transform:uppercase">Options</p><h2 style="margin:4px 0 0;font-size:24px">Options</h2></header><div class="body">' +
-      '<div class="block"><h3>Appearance</h3><label class="check"><input type="checkbox" id="dark"' + (state.darkMode ? " checked" : "") + "> <span>Dark mode</span></label>" +
-      '<p class="muted">Dark mode is a dark cobalt grey, not black. Count cells stay amber. Drop slips still print black on white.</p>' +
+      '<div class="block"><h3>Appearance</h3><label class="check" for="theme">Color theme</label>' +
+      '<select id="theme" style="margin-top:4px;height:36px;min-width:220px;max-width:420px;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px">' +
+      THEMES.map(function (t) {
+        return '<option value="' + t.id + '"' + (state.theme === t.id ? " selected" : "") + ">" + escapeHtml(t.name) + "</option>";
+      }).join("") +
+      "</select>" +
+      '<div class="theme-picks">' + THEMES.map(function (t) {
+        var on = state.theme === t.id;
+        return '<button type="button" class="theme-pick' + (on ? " on" : "") + '" data-theme="' + t.id + '" style="background:' + t.paper + ";color:" + t.ink + ";border-color:" + (on ? t.navy : t.grid) + '"><i style="background:' + t.navy + '"></i>' + escapeHtml(t.name) + "</button>";
+      }).join("") + "</div>" +
+      '<p class="muted">Twelve themes. Count cells stay amber. Drop slips still print black on white.</p>' +
       '<label class="check" for="font" style="margin-top:12px">Font</label>' +
       '<select id="font" style="margin-top:4px;height:36px;min-width:220px;max-width:420px;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px;font-family:' + escapeHtml(fontStack(state.font)) + '">' +
       names.map(function (n) {
@@ -849,6 +1208,7 @@
       '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Double-click the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
       '<div class="block"><h3>The drop</h3><p>$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.</p></div>' +
       '<div class="block"><h3>Changelog</h3>' +
+      "<p>v2.37.0  Options has twelve color themes. Count cells stay amber. Drop slips still print black on white.</p>" +
       "<p>v2.36.0  Stats for Nerds keeps a running total of cash each register has taken, including cash still on the counter. Sample fills stay out.</p>" +
       "<p>v2.35.0  Dark mode is a dark cobalt grey, not black. Options has a font size list. The default stays 15.</p>" +
       "<p>v2.34.0  Double-click a till name to rename it. A single click only switches registers.</p>" +
@@ -1036,9 +1396,18 @@
         if (e.key === "Escape") { state.editingTill = -1; paint(); }
       });
     }
-    var dark = document.getElementById("dark");
-    if (dark) dark.addEventListener("change", function () {
-      state.darkMode = dark.checked; applyTheme(); save();
+    var themeSel = document.getElementById("theme");
+    if (themeSel) themeSel.addEventListener("change", function () {
+      state.theme = themeById(themeSel.value).id;
+      state.darkMode = themeById(state.theme).dark;
+      applyTheme(); save(); paint();
+    });
+    app.querySelectorAll("[data-theme]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.theme = themeById(btn.getAttribute("data-theme")).id;
+        state.darkMode = themeById(state.theme).dark;
+        applyTheme(); save(); paint();
+      });
     });
     var font = document.getElementById("font");
     if (font) font.addEventListener("change", function () {

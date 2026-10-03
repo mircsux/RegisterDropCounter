@@ -21,6 +21,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var initials by mutableStateOf("")
     var darkMode by mutableStateOf(false)
         private set
+    var theme by mutableStateOf("classic")
+        private set
     private var sampleScratch = false
 
     val registers = mutableStateListOf<Counts>().apply {
@@ -49,9 +51,15 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun setTheme(id: String) {
+        val p = RdcThemes.byId(id, darkMode)
+        theme = p.id
+        darkMode = p.dark
+        prefs().edit().putString("theme", p.id).putBoolean("darkMode", p.dark).apply()
+    }
+
     fun setDarkMode(on: Boolean) {
-        darkMode = on
-        prefs().edit().putBoolean("darkMode", on).apply()
+        setTheme(if (on) "cobalt" else "classic")
     }
 
     fun setCount(register: Int, denom: Denom, value: Int) {
@@ -230,6 +238,9 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
         bag = p.getString("bag", "") ?: ""
         initials = p.getString("initials", "") ?: ""
-        darkMode = p.getBoolean("darkMode", false)
+        val savedDark = p.getBoolean("darkMode", false)
+        val savedTheme = RdcThemes.byId(p.getString("theme", null), savedDark)
+        theme = savedTheme.id
+        darkMode = savedTheme.dark
     }
 }

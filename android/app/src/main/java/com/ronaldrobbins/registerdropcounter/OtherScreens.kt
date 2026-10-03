@@ -3,6 +3,7 @@ package com.ronaldrobbins.registerdropcounter
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -24,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -179,16 +182,27 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
         Text("Options", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg, fontSize = 20.sp)
         Spacer(Modifier.height(12.dp))
         Text("Appearance", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { model.setDarkMode(!model.darkMode) }
-                .padding(vertical = 8.dp),
-        ) {
-            Text("Dark mode", color = RdcColor.ink, modifier = Modifier.weight(1f))
-            Text(if (model.darkMode) "On" else "Off", color = RdcColor.navyFg, fontWeight = FontWeight.SemiBold)
+        Text("Color theme", color = RdcColor.ink, modifier = Modifier.padding(top = 8.dp))
+        RdcThemes.all.forEach { item ->
+            val on = model.theme == item.id
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { model.setTheme(item.id) }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .padding(end = 10.dp)
+                        .size(16.dp)
+                        .background(item.navy),
+                )
+                Text(item.name, color = RdcColor.ink, modifier = Modifier.weight(1f))
+                if (on) Text("On", color = RdcColor.navyFg, fontWeight = FontWeight.SemiBold)
+            }
         }
-        Text("Dark mode is a dark cobalt grey, not black. Count cells stay amber.", color = RdcColor.muted, fontSize = 13.sp)
+        Text("Twelve themes. Count cells stay amber. Drop slips still print black on white.", color = RdcColor.muted, fontSize = 13.sp)
         Spacer(Modifier.height(16.dp))
         Text("Register base", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
         Row {
@@ -251,7 +265,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         ) {
             Text("Register Drop Counter", color = RdcColor.onNavy, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Text("Designed by Ronald Robbins Jr and SuperGrok", color = RdcColor.onNavy)
-            Text("Version 2.36.0  (2026-10-03)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("Version 2.37.0  (2026-10-03)", color = RdcColor.onNavy.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Column(Modifier.padding(16.dp)) {
             Text("Count a drawer", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
@@ -261,6 +275,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             Text("$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.", color = RdcColor.ink)
             Spacer(Modifier.height(12.dp))
             Text("Changelog", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
+            Text("v2.37.0  Options has twelve color themes. Count cells stay amber. Drop slips still print black on white.", color = RdcColor.ink)
             Text("v2.36.0  Stats for Nerds keeps a running total of cash each register has taken, including cash still on the counter. Sample fills stay out.", color = RdcColor.ink)
             Text("v2.35.0  Dark mode is a dark cobalt grey, not black. Options has a font size list. The default stays 15.", color = RdcColor.ink)
             Text("v2.34.0  Double-click a till name to rename it. A single click only switches registers.", color = RdcColor.ink)

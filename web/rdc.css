@@ -54,12 +54,12 @@ html.dark {
 html.dark body {
   background-color: var(--sheet);
   background-image:
-    radial-gradient(900px 480px at 8% -18%, rgb(46 90 150 / 0.32), transparent 58%),
-    radial-gradient(720px 380px at 100% 0%, rgb(30 70 120 / 0.22), transparent 52%);
+    radial-gradient(900px 480px at 8% -18%, var(--theme-glow, rgb(46 90 150 / 0.32)), transparent 58%),
+    radial-gradient(720px 380px at 100% 0%, var(--theme-glow, rgb(30 70 120 / 0.22)), transparent 52%);
   background-attachment: fixed;
 }
-html.dark .top { border-bottom-color: rgb(110 231 212 / 0.28); }
-html.dark .tabs { border-bottom-color: rgb(110 231 212 / 0.18); }
+html.dark .top { border-bottom-color: var(--theme-line, rgb(110 231 212 / 0.28)); }
+html.dark .tabs { border-bottom-color: var(--theme-line, rgb(110 231 212 / 0.18)); }
 html.dark .base-box select {
   background: var(--ink);
   color: var(--navy);
@@ -76,6 +76,16 @@ html, body {
 }
 button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
 button:disabled { opacity: 0.45; cursor: default; }
+
+.theme-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.theme-pick {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 36px; padding: 4px 8px;
+  border: 1px solid var(--grid); border-radius: 6px;
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.theme-pick i { width: 14px; height: 14px; border-radius: 3px; display: block; flex: none; }
+.theme-pick.on { box-shadow: inset 0 0 0 2px var(--navy); }
 
 .app { min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
 
