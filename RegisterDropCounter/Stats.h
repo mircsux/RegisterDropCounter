@@ -135,6 +135,35 @@ inline std::vector<DropEvent> DropEventsFromHistory(const std::vector<HistoryEnt
   return out;
 }
 
+struct RegisterTake {
+  std::wstring label;
+  int clearedCents = 0;
+  int onCounterCents = 0;
+  int takenCents = 0;
+  int clears = 0;
+};
+
+// Lifetime drop per till, plus cash still on the counter. Sample fills are not counted.
+inline std::vector<RegisterTake> RegisterTakes(const std::vector<HistoryEntry>& hist,
+                                               const std::wstring names[kRegisterCount],
+                                               const Counts* live, int base, bool sample) {
+  std::vector<RegisterTake> rows(kRegisterCount);
+  for (int i = 0; i < kRegisterCount; ++i) rows[i].label = TillLabel(names, i);
+  for (const auto& e : DropEventsFromHistory(hist)) {
+    if (e.registerIndex < 0 || e.registerIndex >= kRegisterCount) continue;
+    rows[e.registerIndex].clearedCents += e.dropCents;
+    rows[e.registerIndex].clears += 1;
+  }
+  for (int i = 0; i < kRegisterCount; ++i) {
+    if (live && !sample) {
+      auto r = ComputeRegister(live[i], base);
+      if (r.hasCount && r.dropCents > 0) rows[i].onCounterCents = r.dropCents;
+    }
+    rows[i].takenCents = rows[i].clearedCents + rows[i].onCounterCents;
+  }
+  return rows;
+}
+
 inline NerdStats BuildNerdStats(const std::vector<HistoryEntry>& hist,
                                 const std::wstring names[kRegisterCount],
                                 std::time_t now = std::time(nullptr)) {

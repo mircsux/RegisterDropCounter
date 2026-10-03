@@ -880,11 +880,57 @@ void UpdateStatsScroll(HWND h) {
   SetScrollInfo(h, SB_VERT, &si, TRUE);
 }
 
+int PaintRegisterTakes(HDC dc, int y, int W, const std::vector<rdc::RegisterTake>& takes) {
+  const int pad = 16;
+  const int textPx = gFontPx > 0 ? gFontPx : 15;
+  const int titleH = textPx + 4;
+  const int noteH = textPx + 6;
+  const int headH = 8 + titleH + noteH;
+  const int rowH = rdc::MaxI(22, textPx + 6);
+  const int footH = rdc::MaxI(28, textPx + 12);
+  const int half = rdc::kRegisterCount / 2;
+  const int boxH = headH + half * rowH + footH;
+  RECT box{pad, y, W - pad, y + boxH};
+  FillRound(dc, box, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
+  RECT hdg{box.left + 12, box.top + 6, box.right - 12, box.top + 6 + titleH};
+  DrawTxt(dc, hdg, L"Cash each register has taken", kNavyFg, gFontBold, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+  RECT note{box.left + 12, hdg.bottom, box.right - 12, box.top + headH - 2};
+  DrawTxt(dc, note,
+          L"Running total of every drop, plus cash still on the counter. Sample fills stay out.",
+          kMuted, gFont, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+  const int gap = 16;
+  const int colW = rdc::MaxI(120, (box.right - box.left - 24 - gap) / 2);
+  int total = 0;
+  for (int i = 0; i < rdc::kRegisterCount; ++i) {
+    total += takes[i].takenCents;
+    const int col = i < half ? 0 : 1;
+    const int row = i < half ? i : i - half;
+    const int x = box.left + 12 + col * (colW + gap);
+    const int ry = box.top + headH + row * rowH;
+    RECT name{x, ry, x + colW * 34 / 100, ry + rowH};
+    RECT money{name.right, ry, name.right + colW * 33 / 100, ry + rowH};
+    RECT extra{money.right, ry, x + colW, ry + rowH};
+    DrawTxt(dc, name, takes[i].label.c_str(), kInk, gFont, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+    DrawTxt(dc, money, rdc::Money(takes[i].takenCents).c_str(), kNavyFg, gFontBold,
+            DT_RIGHT | DT_SINGLELINE);
+    wchar_t side[64];
+    if (takes[i].onCounterCents > 0)
+      swprintf(side, 64, L"on counter %s", rdc::Money(takes[i].onCounterCents).c_str());
+    else
+      swprintf(side, 64, L"%d clear%s", takes[i].clears, takes[i].clears == 1 ? L"" : L"s");
+    DrawTxt(dc, extra, side, kMuted, gFont, DT_RIGHT | DT_SINGLELINE | DT_END_ELLIPSIS);
+  }
+  RECT sum{box.left + 12, box.bottom - footH + 4, box.right - 12, box.bottom - 6};
+  wchar_t all[80];
+  swprintf(all, 80, L"All registers    %s", rdc::Money(total).c_str());
+  DrawTxt(dc, sum, all, kInk, gFontBold, DT_RIGHT | DT_SINGLELINE);
+  return y + boxH + 12;
+}
+
 void PaintStats(HWND h, HDC dc) {
   RECT rc{};
   GetClientRect(h, &rc);
   const int W = rc.right;
-  const int H = rc.bottom;
   FillRect(dc, &rc, Brush(kSheet));
   RECT band{0, 0, W, 92};
   FillRect(dc, &band, Brush(kNavy));
@@ -896,23 +942,26 @@ void PaintStats(HWND h, HDC dc) {
           RGB(220, 240, 236), gFont, DT_LEFT | DT_WORDBREAK);
 
   auto stats = rdc::BuildNerdStats(gHistory, gNames);
+  auto takes = rdc::RegisterTakes(gHistory, gNames, gRegs, gBase, gSampleScratch);
   const int pad = 16;
   const int closeH = 32;
   int y = 104 - gStatsScroll;
+  y = PaintRegisterTakes(dc, y, W, takes);
 
   if (stats.clearCount == 0) {
-    RECT empty{pad, y, W - pad, H - pad - closeH - 16};
+    RECT empty{pad, y, W - pad, y + 72};
     FillRound(dc, empty, kPaper, RGB(GetRValue(kMuted), GetGValue(kMuted), GetBValue(kMuted)));
     InflateRect(&empty, -16, -16);
     DrawTxt(dc, empty,
-            L"History is empty. Count a till, then Clear. Each real clear becomes a point on the charts.",
+            L"History is empty. Count a till, then Clear. Cash still on the counter is already in the totals above. Sample fills stay out.",
             kMuted, gFont, DT_LEFT | DT_WORDBREAK);
+    y += 84;
     FillRect(dc, &band, Brush(kNavy));
     DrawTxt(dc, t, L"Stats for Nerds", RGB(255, 255, 255), gFontBold, DT_LEFT | DT_SINGLELINE);
     DrawTxt(dc, sub,
             L"Drop is the cash pulled so each drawer resets to base. Sample fills stay out of History, so they stay off these charts.",
             RGB(220, 240, 236), gFont, DT_LEFT | DT_WORDBREAK);
-    gStatsDocH = H;
+    gStatsDocH = y + gStatsScroll + closeH + 24;
     return;
   }
 

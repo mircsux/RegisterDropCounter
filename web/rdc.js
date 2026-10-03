@@ -298,11 +298,54 @@
     return s + "</svg>";
   }
 
+  function registerTakes() {
+    var events = dropEvents(state.history);
+    var cleared = [];
+    var clears = [];
+    var i;
+    for (i = 0; i < REGISTER_COUNT; i++) { cleared[i] = 0; clears[i] = 0; }
+    events.forEach(function (e) {
+      if (e.registerIndex < 0 || e.registerIndex >= REGISTER_COUNT) return;
+      cleared[e.registerIndex] += e.dropCents;
+      clears[e.registerIndex] += 1;
+    });
+    var rows = [];
+    var total = 0;
+    for (i = 0; i < REGISTER_COUNT; i++) {
+      var onCounter = 0;
+      if (!state.sampleScratch) {
+        var r = computeRegister(state.registers[i], state.base);
+        if (r.hasCount && r.dropCents > 0) onCounter = r.dropCents;
+      }
+      var taken = cleared[i] + onCounter;
+      total += taken;
+      rows.push({
+        label: state.names[i] || ("R" + (i + 1)),
+        taken: taken,
+        onCounter: onCounter,
+        clears: clears[i],
+      });
+    }
+    return { rows: rows, total: total };
+  }
+
   function statsHtml() {
+    var take = registerTakes();
     var events = dropEvents(state.history);
     var h = '<article class="card panel stats-page"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7">Help</p><h2 style="margin:4px 0 0;font-size:24px">Stats for Nerds</h2><p style="margin:8px 0 0;opacity:.85">Every clear in History, split until there is nothing left to split. Sample fills stay out of History.</p></header>';
+    h += '<div class="body">';
+    h += '<div class="block"><h3>Cash each register has taken</h3>';
+    h += '<p class="muted">Running total of every drop, plus cash still on the counter. Sample fills stay out. All registers ' + formatMoney(take.total) + ".</p>";
+    h += '<table style="width:100%;border-collapse:collapse;font-size:13px"><tbody>';
+    take.rows.forEach(function (row) {
+      var side = row.onCounter > 0 ? "on counter " + formatMoney(row.onCounter) : row.clears + " clear" + (row.clears === 1 ? "" : "s");
+      h += "<tr><td style=\"padding:4px 8px;border-top:1px solid var(--grid)\">" + escapeHtml(row.label) + "</td>";
+      h += '<td style="padding:4px 8px;border-top:1px solid var(--grid);text-align:right;font-family:ui-monospace,monospace;font-weight:700">' + formatMoney(row.taken) + "</td>";
+      h += '<td style="padding:4px 8px;border-top:1px solid var(--grid);text-align:right;color:var(--muted);font-family:ui-monospace,monospace">' + escapeHtml(side) + "</td></tr>";
+    });
+    h += "</tbody></table></div>";
     if (!events.length) {
-      return h + '<div class="body"><p class="muted">History is empty. Count a till, then Clear. Each real clear becomes a point on the charts.</p></div></article>';
+      return h + '<p class="muted">History is empty. Count a till, then Clear. Cash still on the counter is already in the totals above.</p></div></article>';
     }
     var total = 0;
     var byTill = {};
@@ -378,7 +421,6 @@
     h += tile("Pieces", String(pieces));
     h += tile("Tills", String(tillItems.length));
     h += "</div>";
-    h += '<div class="body">';
     if (top) {
       h += '<div class="block"><h3>What the drops say</h3><ul><li>' + escapeHtml(top.label) + " is the heavy till — " + (total ? Math.round(top.v * 100 / total) : 0) + "% of the drop.</li>";
       if (topDay && topDay.v) h += "<li>" + topDay.label + " is the big day for cash pulled.</li>";
