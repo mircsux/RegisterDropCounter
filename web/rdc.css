@@ -29,18 +29,18 @@
 
 html.dark {
   color-scheme: dark;
-  --navy: #102c32;
-  --navy-mid: #1e5a64;
-  --navy-deep: #163e46;
-  --navy-ink: #051012;
+  --navy: #1a3352;
+  --navy-mid: #2e5580;
+  --navy-deep: #152844;
+  --navy-ink: #152232;
   --navy-fg: #6ee7d4;
-  --sheet: #060809;
-  --paper: #10171a;
-  --grid: #2c454b;
+  --sheet: #1b2a3d;
+  --paper: #24364c;
+  --grid: #3c5570;
   --input: #f5c542;
   --input-edge: #ffe08a;
   --cell-ink: #1c1406;
-  --computed: #1a272b;
+  --computed: #1e3044;
   --ok: #0d3f35;
   --ok-ink: #6ef0c8;
   --bad: #4d1f28;
@@ -49,13 +49,13 @@ html.dark {
   --muted: #8fb3ae;
   --ink: #e7f6f2;
   --on-navy: #e7f6f2;
-  --shadow: 0 0 0 1px rgb(110 231 212 / 0.08), 0 12px 32px rgb(0 0 0 / 0.45);
+  --shadow: 0 0 0 1px rgb(110 231 212 / 0.1), 0 12px 32px rgb(12 20 34 / 0.4);
 }
 html.dark body {
   background-color: var(--sheet);
   background-image:
-    radial-gradient(900px 480px at 8% -18%, rgb(30 90 100 / 0.38), transparent 58%),
-    radial-gradient(720px 380px at 100% 0%, rgb(21 86 74 / 0.22), transparent 52%);
+    radial-gradient(900px 480px at 8% -18%, rgb(46 90 150 / 0.32), transparent 58%),
+    radial-gradient(720px 380px at 100% 0%, rgb(30 70 120 / 0.22), transparent 52%);
   background-attachment: fixed;
 }
 html.dark .top { border-bottom-color: rgb(110 231 212 / 0.28); }

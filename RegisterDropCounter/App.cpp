@@ -212,18 +212,18 @@ BOOL CALLBACK StampChildFont(HWND child, LPARAM font) {
 
 void ApplyTheme() {
   if (gOptions.darkMode) {
-    kNavy = RGB(16, 44, 50);
-    kNavyMid = RGB(30, 90, 100);
-    kNavyDeep = RGB(22, 62, 70);
+    kNavy = RGB(26, 51, 82);
+    kNavyMid = RGB(46, 85, 128);
+    kNavyDeep = RGB(21, 40, 68);
     kOnNavy = RGB(231, 246, 242);
-    kSheet = RGB(6, 8, 9);
-    kPaper = RGB(16, 23, 26);
+    kSheet = RGB(27, 42, 61);
+    kPaper = RGB(36, 54, 76);
     kInk = RGB(231, 246, 242);
     kNavyFg = RGB(110, 231, 212);
     kMuted = RGB(143, 179, 174);
-    kGrid = RGB(44, 69, 75);
+    kGrid = RGB(60, 85, 112);
     kInput = RGB(245, 197, 66);
-    kComputed = RGB(26, 39, 43);
+    kComputed = RGB(30, 48, 68);
     kOk = RGB(13, 63, 53);
     kBad = RGB(77, 31, 40);
     kDropHit = RGB(21, 86, 74);

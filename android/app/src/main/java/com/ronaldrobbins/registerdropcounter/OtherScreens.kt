@@ -188,7 +188,7 @@ fun OptionsScreen(model: AppModel, modifier: Modifier = Modifier) {
             Text("Dark mode", color = RdcColor.ink, modifier = Modifier.weight(1f))
             Text(if (model.darkMode) "On" else "Off", color = RdcColor.navyFg, fontWeight = FontWeight.SemiBold)
         }
-        Text("Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells.", color = RdcColor.muted, fontSize = 13.sp)
+        Text("Dark mode is a dark cobalt grey, not black. Count cells stay amber.", color = RdcColor.muted, fontSize = 13.sp)
         Spacer(Modifier.height(16.dp))
         Text("Register base", fontWeight = FontWeight.SemiBold, color = RdcColor.navyFg)
         Row {

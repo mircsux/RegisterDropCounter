@@ -821,7 +821,7 @@
     }).sort(function (a, b) { return a.localeCompare(b); });
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7;text-transform:uppercase">Options</p><h2 style="margin:4px 0 0;font-size:24px">Options</h2></header><div class="body">' +
       '<div class="block"><h3>Appearance</h3><label class="check"><input type="checkbox" id="dark"' + (state.darkMode ? " checked" : "") + "> <span>Dark mode</span></label>" +
-      '<p class="muted">Dark mode uses a night theme: teal chrome, carbon cards, and amber count cells. Drop slips still print black on white.</p>' +
+      '<p class="muted">Dark mode is a dark cobalt grey, not black. Count cells stay amber. Drop slips still print black on white.</p>' +
       '<label class="check" for="font" style="margin-top:12px">Font</label>' +
       '<select id="font" style="margin-top:4px;height:36px;min-width:220px;max-width:420px;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px;font-family:' + escapeHtml(fontStack(state.font)) + '">' +
       names.map(function (n) {

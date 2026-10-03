@@ -4,15 +4,15 @@ import UIKit
 enum Theme {
     static let navy = adaptive(
         light: (31 / 255, 78 / 255, 121 / 255),
-        dark: (16 / 255, 44 / 255, 50 / 255)
+        dark: (26 / 255, 51 / 255, 82 / 255)
     )
     static let navyDeep = adaptive(
         light: (22 / 255, 58 / 255, 95 / 255),
-        dark: (22 / 255, 62 / 255, 70 / 255)
+        dark: (21 / 255, 40 / 255, 68 / 255)
     )
     static let navyMid = adaptive(
         light: (46 / 255, 117 / 255, 182 / 255),
-        dark: (30 / 255, 90 / 255, 100 / 255)
+        dark: (46 / 255, 85 / 255, 128 / 255)
     )
     static let navyFg = adaptive(
         light: (31 / 255, 78 / 255, 121 / 255),
@@ -24,7 +24,7 @@ enum Theme {
     )
     static let computed = adaptive(
         light: (248 / 255, 228 / 255, 212 / 255),
-        dark: (26 / 255, 39 / 255, 43 / 255)
+        dark: (30 / 255, 48 / 255, 68 / 255)
     )
     static let ok = adaptive(
         light: (198 / 255, 239 / 255, 206 / 255),
@@ -49,11 +49,11 @@ enum Theme {
 
     static let sheet = adaptive(
         light: (238 / 255, 241 / 255, 244 / 255),
-        dark: (6 / 255, 8 / 255, 9 / 255)
+        dark: (27 / 255, 42 / 255, 61 / 255)
     )
     static let paper = adaptive(
         light: (1, 1, 1),
-        dark: (16 / 255, 23 / 255, 26 / 255)
+        dark: (36 / 255, 54 / 255, 76 / 255)
     )
     static let ink = adaptive(
         light: (26 / 255, 36 / 255, 46 / 255),
@@ -65,7 +65,7 @@ enum Theme {
     )
     static let grid = adaptive(
         light: (197 / 255, 208 / 255, 219 / 255),
-        dark: (44 / 255, 69 / 255, 75 / 255)
+        dark: (60 / 255, 85 / 255, 112 / 255)
     )
 
     private static func adaptive(
