@@ -498,8 +498,8 @@ void DrawThemedItem(const DRAWITEMSTRUCT* di) {
     HFONT use = gFont;
     if (buf[0] && buf[0] != L'$') {
       const int q = gOptions.darkMode ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
-      itemFont = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
-                             DEFAULT_PITCH | FF_DONTCARE, buf);
+      itemFont = CreateFontW(-(gFontPx > 0 ? gFontPx : 15), 0, 0, 0, FW_NORMAL, 0, 0, 0,
+                             DEFAULT_CHARSET, 0, 0, q, DEFAULT_PITCH | FF_DONTCARE, buf);
       if (itemFont) use = itemFont;
     }
     HFONT old = (HFONT)SelectObject(di->hDC, use);
@@ -1104,14 +1104,16 @@ void SizeLvCols(HWND lv, const int* parts, int n) {
 void RecreateFonts() {
   const bool dark = gOptions.darkMode;
   const std::wstring face = rdc::SanitizeFontFace(gOptions.fontFace);
-  if (gFont && gFontBold && gMono && gFontPx == 15 && gFontDark == dark && gFontFace == face)
+  const int px = rdc::SanitizeFontPx(gOptions.fontPx);
+  gOptions.fontPx = px;
+  if (gFont && gFontBold && gMono && gFontPx == px && gFontDark == dark && gFontFace == face)
     return;
   const int q = dark ? ANTIALIASED_QUALITY : CLEARTYPE_QUALITY;
-  HFONT ui = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+  HFONT ui = CreateFontW(-px, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
                          DEFAULT_PITCH | FF_DONTCARE, face.c_str());
-  HFONT bold = CreateFontW(-16, 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+  HFONT bold = CreateFontW(-(px + 1), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
                            DEFAULT_PITCH | FF_DONTCARE, face.c_str());
-  HFONT mono = CreateFontW(-15, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
+  HFONT mono = CreateFontW(-px, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, q,
                            DEFAULT_PITCH | FF_DONTCARE, face.c_str());
   if (gFont) DeleteObject(gFont);
   if (gFontBold) DeleteObject(gFontBold);
@@ -1119,7 +1121,7 @@ void RecreateFonts() {
   gFont = ui;
   gFontBold = bold;
   gMono = mono;
-  gFontPx = 15;
+  gFontPx = px;
   gFontDark = dark;
   gFontFace = face;
 }
@@ -1180,13 +1182,14 @@ void Relayout(HWND h) {
   if (W < 200 || H < 160) return;
 
   const int pad = rdc::MaxI(8, W / 140);
-  const int btnH = rdc::MaxI(22, rdc::MinI(30, H / 26));
   const bool twoLine = W < 1520;
+  RecreateFonts();
+  ApplyMainFonts(h);
+  int btnH = rdc::MaxI(22, rdc::MinI(30, H / 26));
+  if (gFontPx > 15) btnH = rdc::MaxI(btnH, gFontPx + 10);
   const int headerH = twoLine ? (btnH * 2 + 18) : (btnH + 16);
   gHeaderH = headerH;
   const int statusH = rdc::MaxI(20, H / 34);
-  RecreateFonts();
-  ApplyMainFonts(h);
 
   int leftW = (W - pad * 3) * 47 / 100;
   if (leftW < 430) leftW = rdc::MinI(430, W * 48 / 100);
@@ -1205,6 +1208,20 @@ void Relayout(HWND h) {
   int rowH = (gridBottom - yGrid) / rows;
   if (rowH < 18) rowH = 18;
   if (rowH > 32) rowH = 32;
+  if (gFontPx > 15) {
+    const int need = gFontPx + 8;
+    if (rowH < need) rowH = need;
+    const int cap = rdc::MaxI(32, need);
+    if (rowH > cap) rowH = cap;
+  }
+  HWND tabs = GetDlgItem(h, IDC_TABS);
+  if (tabs && gFontPx > 15) TabCtrl_SetItemSize(tabs, rdc::MaxI(56, gFontPx * 4), tabH);
+  HWND base = GetDlgItem(h, IDC_BASE);
+  if (base && gFontPx > 15) {
+    const int ih = gFontPx + 7;
+    SendMessageW(base, CB_SETITEMHEIGHT, (WPARAM)-1, ih);
+    SendMessageW(base, CB_SETITEMHEIGHT, 0, ih);
+  }
 
   const int colW[6] = {leftW * 8 / 100, leftW * 16 / 100, leftW * 16 / 100,
                        leftW * 22 / 100, leftW * 18 / 100, leftW * 20 / 100};

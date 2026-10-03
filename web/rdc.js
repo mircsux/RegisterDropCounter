@@ -25,6 +25,11 @@
     var safe = cleanFont(name).replace(/["\\<>]/g, "");
     return '"' + safe + '", "Segoe UI", system-ui, sans-serif';
   }
+  var FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 22, 24];
+  function cleanSize(raw) {
+    var n = parseInt(raw, 10);
+    return FONT_SIZES.indexOf(n) >= 0 ? n : 15;
+  }
   var REGISTER_COUNT = 10;
   var HISTORY_LIMIT = 200;
   var TILL_NAME_MAX = 20;
@@ -454,6 +459,7 @@
     helpOpen: false,
     sampleScratch: false,
     font: "Segoe UI",
+    fontSize: 15,
   };
 
   function loadJson(key, fallback) {
@@ -470,7 +476,7 @@
         registers: state.registers,
         sampleScratch: !!state.sampleScratch,
       }));
-      localStorage.setItem(OKEY, JSON.stringify({ darkMode: state.darkMode, font: state.font }));
+      localStorage.setItem(OKEY, JSON.stringify({ darkMode: state.darkMode, font: state.font, fontSize: state.fontSize }));
       localStorage.setItem(HKEY, JSON.stringify(state.history));
       localStorage.setItem(NKEY, JSON.stringify(state.names));
     } catch (e) {}
@@ -489,6 +495,7 @@
     var opt = loadJson(OKEY, {});
     state.darkMode = !!opt.darkMode;
     state.font = cleanFont(opt.font);
+    state.fontSize = cleanSize(opt.fontSize);
     var hist = loadJson(HKEY, []);
     if (Array.isArray(hist)) state.history = hist.slice(0, HISTORY_LIMIT);
     var names = loadJson(NKEY, null);
@@ -503,6 +510,7 @@
     var stack = fontStack(state.font);
     document.documentElement.style.setProperty("--font", stack);
     document.documentElement.style.setProperty("--mono", stack);
+    document.documentElement.style.setProperty("--fs", state.fontSize + "px");
   }
 
   function results() {
@@ -778,7 +786,14 @@
         return '<option value="' + escapeHtml(n) + '"' + (state.font === n ? " selected" : "") + ' style="font-family:' + escapeHtml(fontStack(n)) + '">' + escapeHtml(n) + "</option>";
       }).join("") +
       "</select>" +
-      '<p class="muted">Pick a face from the list, including extended and Unicode fonts. The choice stays on this device.</p></div>' +
+      '<p class="muted">Pick a face from the list, including extended and Unicode fonts. The choice stays on this device.</p>' +
+      '<label class="check" for="font-size" style="margin-top:12px">Size</label>' +
+      '<select id="font-size" style="margin-top:4px;height:36px;min-width:6rem;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px">' +
+      FONT_SIZES.map(function (px) {
+        return '<option value="' + px + '"' + (state.fontSize === px ? " selected" : "") + ">" + px + "</option>";
+      }).join("") +
+      "</select>" +
+      '<p class="muted">15 is the default. Counts and labels use this size.</p></div>' +
       '<div class="block"><h3>History file</h3><p class="muted">Save snapshots as RegisterDropCounter.history — the same file Windows uses for OneDrive.</p>' +
       '<div class="tools" style="border:0;padding:8px 0"><button type="button" class="btn btn-navy" data-act="hist-save">Save history file</button>' +
       '<label class="btn btn-light" style="height:32px">Load history file<input type="file" id="hist-file" accept=".history,.txt,text/plain" hidden></label></div>' +
@@ -984,6 +999,13 @@
     var font = document.getElementById("font");
     if (font) font.addEventListener("change", function () {
       state.font = cleanFont(font.value);
+      applyTheme();
+      save();
+      paint();
+    });
+    var fontSize = document.getElementById("font-size");
+    if (fontSize) fontSize.addEventListener("change", function () {
+      state.fontSize = cleanSize(fontSize.value);
       applyTheme();
       save();
       paint();

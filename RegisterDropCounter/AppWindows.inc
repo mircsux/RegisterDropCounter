@@ -1145,6 +1145,8 @@ constexpr int IDC_O_CLOSE = 9211;
 constexpr int IDC_O_DARK = 9212;
 constexpr int IDC_O_FONTLBL = 9213;
 constexpr int IDC_O_FONT = 9214;
+constexpr int IDC_O_SIZELBL = 9215;
+constexpr int IDC_O_SIZE = 9216;
 
 const wchar_t kOptHelp[] =
     L"When this is on, Clear and Clear All also write snapshots to a file in your "
@@ -1209,6 +1211,26 @@ void ApplyChosenFont(const std::wstring& raw) {
   ApplyTheme();
 }
 
+void FillFontSizes(HWND combo) {
+  const int sizes[] = {12, 13, 14, 15, 16, 18, 20, 22, 24};
+  SendMessageW(combo, CB_RESETCONTENT, 0, 0);
+  for (int px : sizes) {
+    wchar_t buf[8];
+    swprintf(buf, 8, L"%d", px);
+    SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)buf);
+  }
+}
+
+void ApplyChosenSize(int px) {
+  px = rdc::SanitizeFontPx(px);
+  if (px == gOptions.fontPx && gFontPx == px) return;
+  gOptions.fontPx = px;
+  PersistOptions();
+  ApplyTheme();
+  if (gMain && IsWindow(gMain)) Relayout(gMain);
+  if (gOpt && IsWindow(gOpt)) RelayoutOptions(gOpt);
+}
+
 void RefreshOptionsUi(HWND h) {
   SendMessageW(GetDlgItem(h, IDC_O_DARK), BM_SETCHECK,
                gOptions.darkMode ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -1220,6 +1242,18 @@ void RefreshOptionsUi(HWND h) {
     int sel = (int)SendMessageW(font, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)face.c_str());
     if (sel < 0) sel = (int)SendMessageW(font, CB_ADDSTRING, 0, (LPARAM)face.c_str());
     if (sel >= 0) SendMessageW(font, CB_SETCURSEL, sel, 0);
+    if (gFontPx > 15) {
+      const int itemH = gFontPx + 8;
+      SendMessageW(font, CB_SETITEMHEIGHT, (WPARAM)-1, itemH);
+      SendMessageW(font, CB_SETITEMHEIGHT, 0, itemH);
+    }
+  }
+  HWND size = GetDlgItem(h, IDC_O_SIZE);
+  if (size) {
+    wchar_t want[8];
+    swprintf(want, 8, L"%d", rdc::SanitizeFontPx(gOptions.fontPx));
+    int sel = (int)SendMessageW(size, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)want);
+    if (sel >= 0) SendMessageW(size, CB_SETCURSEL, sel, 0);
   }
   std::wstring folder = rdc::ResolvedSyncFolder(gOptions);
   if (folder.empty()) folder = gOptions.folder;
@@ -1258,18 +1292,20 @@ void RelayoutOptions(HWND h) {
   if (W < 240 || H < 180) return;
   const int pad = 16;
   const int btnH = 28;
-  HDWP dwp = BeginDeferWindowPos(16);
+  HDWP dwp = BeginDeferWindowPos(18);
   if (!dwp) return;
   Place(&dwp, h, IDC_O_TITLE, pad, 10, W - pad * 2, 24);
   Place(&dwp, h, IDC_O_DARK, pad, 48, W - pad * 2, 24);
   Place(&dwp, h, IDC_O_FONTLBL, pad, 80, 56, 24);
   Place(&dwp, h, IDC_O_FONT, pad + 60, 76, W - pad * 2 - 60, 280);
-  Place(&dwp, h, IDC_O_SYNC, pad, 112, W - pad * 2, 24);
-  Place(&dwp, h, IDC_O_HELP, pad, 144, W - pad * 2, 100);
-  Place(&dwp, h, IDC_O_PATHLBL, pad, 252, 80, 22);
-  Place(&dwp, h, IDC_O_PATH, pad + 84, 248, W - pad * 2 - 84 - 128, 28);
-  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 248, 120, 28);
-  const int yAct = 292;
+  Place(&dwp, h, IDC_O_SIZELBL, pad, 116, 56, 24);
+  Place(&dwp, h, IDC_O_SIZE, pad + 60, 112, 120, 240);
+  Place(&dwp, h, IDC_O_SYNC, pad, 148, W - pad * 2, 24);
+  Place(&dwp, h, IDC_O_HELP, pad, 180, W - pad * 2, 100);
+  Place(&dwp, h, IDC_O_PATHLBL, pad, 288, 80, 22);
+  Place(&dwp, h, IDC_O_PATH, pad + 84, 284, W - pad * 2 - 84 - 128, 28);
+  Place(&dwp, h, IDC_O_BROWSE, W - pad - 120, 284, 120, 28);
+  const int yAct = 328;
   Place(&dwp, h, IDC_O_SAVE, pad, yAct, 150, btnH);
   Place(&dwp, h, IDC_O_LOAD, pad + 158, yAct, 160, btnH);
   Place(&dwp, h, IDC_O_SYNCNOW, pad + 326, yAct, 100, btnH);
@@ -1299,6 +1335,14 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       SendMessageW(font, CB_SETITEMHEIGHT, 0, 24);
       SendMessageW(font, WM_SETFONT, (WPARAM)gFont, TRUE);
       Untheme(font);
+      MakeStatic(h, IDC_O_SIZELBL, L"Size", 16, 116, 56, 24, SS_LEFT);
+      HWND size = CreateWindowW(
+          L"COMBOBOX", L"",
+          WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST | CBS_HASSTRINGS,
+          76, 112, 120, 240, h, (HMENU)(INT_PTR)IDC_O_SIZE, gInst, nullptr);
+      FillFontSizes(size);
+      SendMessageW(size, WM_SETFONT, (WPARAM)gFont, TRUE);
+      Untheme(size);
       HWND chk = CreateWindowW(L"BUTTON", L"Sync history to OneDrive",
                                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 16, 80, 400,
                                24, h, (HMENU)(INT_PTR)IDC_O_SYNC, gInst, nullptr);
@@ -1370,6 +1414,14 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         int sel = (int)SendMessageW((HWND)l, CB_GETCURSEL, 0, 0);
         if (sel >= 0 && SendMessageW((HWND)l, CB_GETLBTEXT, sel, (LPARAM)buf) != CB_ERR)
           ApplyChosenFont(buf);
+      } else if (id == IDC_O_SIZE && code == CBN_SELCHANGE) {
+        wchar_t buf[8]{};
+        int sel = (int)SendMessageW((HWND)l, CB_GETCURSEL, 0, 0);
+        if (sel >= 0 && SendMessageW((HWND)l, CB_GETLBTEXT, sel, (LPARAM)buf) != CB_ERR) {
+          int px = 0;
+          for (wchar_t* p = buf; *p >= L'0' && *p <= L'9'; ++p) px = px * 10 + (*p - L'0');
+          ApplyChosenSize(px);
+        }
       } else if (id == IDC_O_SYNC) {
         gOptions.syncOneDrive = SendMessageW((HWND)l, BM_GETCHECK, 0, 0) == BST_CHECKED;
         PersistOptions();
@@ -1428,7 +1480,7 @@ LRESULT CALLBACK OptProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     case WM_GETMINMAXINFO: {
       auto* m = (MINMAXINFO*)l;
       m->ptMinTrackSize.x = 560;
-      m->ptMinTrackSize.y = 480;
+      m->ptMinTrackSize.y = 520;
       return 0;
     }
     case WM_CLOSE:
@@ -1464,7 +1516,7 @@ void ShowOptions(HWND owner) {
   RECT rc;
   GetWindowRect(owner, &rc);
   gOpt = CreateWindowExW(WS_EX_APPWINDOW, kOptClass, L"Options",
-                         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 60, rc.top + 60, 680, 520,
+                         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, rc.left + 60, rc.top + 60, 680, 560,
                          owner, nullptr, gInst, nullptr);
   ApplyWinDark(gOpt);
   ThemeChildEdits(gOpt);

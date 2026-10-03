@@ -17,6 +17,7 @@ struct Options {
   bool syncOneDrive = false;
   bool darkMode = false;
   std::wstring fontFace = L"Segoe UI";
+  int fontPx = 15;
   std::wstring folder;  // empty = auto-detect OneDrive\RegisterDropCounter
 };
 
@@ -40,6 +41,23 @@ inline std::wstring SanitizeFontFace(std::wstring name) {
   s = s.substr(a, b - a);
   if (s.empty()) return L"Segoe UI";
   return s;
+}
+
+inline int SanitizeFontPx(int px) {
+  switch (px) {
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 18:
+    case 20:
+    case 22:
+    case 24:
+      return px;
+    default:
+      return 15;
+  }
 }
 
 inline std::wstring DetectOneDriveRoot() {
@@ -153,6 +171,8 @@ inline bool SaveOptions(const std::wstring& path, const Options& o) {
   body += o.darkMode ? L"1\n" : L"0\n";
   body += SanitizeFontFace(o.fontFace);
   body += L"\n";
+  body += std::to_wstring(SanitizeFontPx(o.fontPx));
+  body += L"\n";
   const std::string utf8 = std::string("\xEF\xBB\xBF") + WideToUtf8(body);
   HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
                             nullptr);
@@ -168,6 +188,7 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
   o->syncOneDrive = false;
   o->darkMode = false;
   o->fontFace = L"Segoe UI";
+  o->fontPx = 15;
   o->folder.clear();
 #if !defined(_WIN32)
   (void)path;
@@ -188,19 +209,19 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
   if (!ok) return false;
   bytes.resize(got);
   const std::wstring text = BytesToWide(bytes);
-  std::wstring lines[5];
+  std::wstring lines[6];
   int n = 0;
   std::wstring cur;
   for (wchar_t c : text) {
     if (c == L'\n') {
       if (!cur.empty() && cur.back() == L'\r') cur.pop_back();
-      if (n < 5) lines[n++] = cur;
+      if (n < 6) lines[n++] = cur;
       cur.clear();
     } else {
       cur.push_back(c);
     }
   }
-  if (!cur.empty() && n < 5) {
+  if (!cur.empty() && n < 6) {
     if (cur.back() == L'\r') cur.pop_back();
     lines[n++] = cur;
   }
@@ -209,6 +230,18 @@ inline bool LoadOptions(const std::wstring& path, Options* o) {
   if (n > 2) o->folder = lines[2];
   if (n > 3) o->darkMode = lines[3] == L"1";
   if (n > 4) o->fontFace = SanitizeFontFace(lines[4]);
+  if (n > 5) {
+    int px = 0;
+    bool ok = !lines[5].empty();
+    for (wchar_t c : lines[5]) {
+      if (c < L'0' || c > L'9') {
+        ok = false;
+        break;
+      }
+      px = px * 10 + (c - L'0');
+    }
+    o->fontPx = SanitizeFontPx(ok ? px : 0);
+  }
   return true;
 #endif
 }
