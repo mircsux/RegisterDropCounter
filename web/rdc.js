@@ -692,7 +692,7 @@
     if (state.editingTill === i) {
       h += '<input class="till-edit" id="till-' + i + '" maxlength="' + TILL_NAME_MAX + '" value="' + escapeHtml(state.names[i]) + '" data-till="' + i + '" />';
     } else {
-      h += '<button type="button" class="till-btn" data-act="rename" data-i="' + i + '">' + escapeHtml(state.names[i]) + "</button>";
+      h += '<button type="button" class="till-btn" data-till-name="1" data-i="' + i + '" title="Double-click to rename">' + escapeHtml(state.names[i]) + "</button>";
     }
     h += '</h2><div class="row">';
     h += '<button type="button" class="btn btn-ghost" data-act="slip" data-i="' + i + '">Drop slip</button>';
@@ -789,7 +789,7 @@
   function aboutHtml() {
     return '<article class="card panel"><header class="card-h" style="display:block;padding:20px 24px"><p style="margin:0;font-size:12px;opacity:.7">Designed by Ronald Robbins Jr and SuperGrok</p><h2 style="margin:4px 0 0;font-size:24px">Register Drop Counter</h2><p style="margin:8px 0 0;opacity:.85">Version ' + VERSION + " (" + RELEASE + ")</p></header><div class='body'>" +
       '<p class="muted">Count each drawer, drop down to the register base, and copy tab-separated rows into the national cash log.</p>' +
-      '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Tap the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
+      '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Double-click the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
       '<div class="block"><h3>The drop</h3><p>$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.</p></div>' +
       '<div class="block"><h3>Changelog</h3>' +
       "<p>v2.33.0  Till keeps the last drop. On counter and Cleared tonight show the deposit. Font list is every installed face. New cash-drawer icon.</p>" +
@@ -886,6 +886,8 @@
     return "c-" + reg + "-" + KEYS[idx];
   }
 
+  var nameClickTimer = 0;
+
   function bind() {
     app.querySelectorAll("[data-sheet]").forEach(function (b) {
       b.addEventListener("click", function () { state.sheet = b.getAttribute("data-sheet"); state.confirmClear = false; paint(); });
@@ -893,6 +895,28 @@
     var base = document.getElementById("base");
     if (base) base.addEventListener("change", function () {
       state.base = Number(base.value) || 400; save(); paint();
+    });
+    app.querySelectorAll("[data-till-name]").forEach(function (b) {
+      var i = Number(b.getAttribute("data-i"));
+      b.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        clearTimeout(nameClickTimer);
+        nameClickTimer = setTimeout(function () {
+          nameClickTimer = 0;
+          if (state.active === i) return;
+          state.active = i;
+          lastFocus = "c-" + i + "-penny";
+          paint();
+        }, 280);
+      });
+      b.addEventListener("dblclick", function (ev) {
+        ev.preventDefault();
+        clearTimeout(nameClickTimer);
+        nameClickTimer = 0;
+        state.active = i;
+        state.editingTill = i;
+        paint();
+      });
     });
     app.querySelectorAll("[data-act]").forEach(function (b) {
       b.addEventListener("click", function (ev) {
@@ -1095,7 +1119,6 @@
       save(); paint(); return;
     }
     if (act === "active") { state.active = i; lastFocus = "c-" + i + "-penny"; paint(); return; }
-    if (act === "rename") { state.editingTill = i; paint(); return; }
     if (act === "slip") { state.slipOpen = i; paint(); return; }
     if (act === "slip-close") { state.slipOpen = -1; paint(); return; }
     if (act === "slip-print") { window.print(); return; }

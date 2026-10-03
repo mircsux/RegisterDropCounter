@@ -135,7 +135,6 @@ std::wstring gSlipBag;
 std::wstring gSlipInitials;
 int gSlipReg = 0;
 std::wstring gNames[rdc::kRegisterCount];
-int gTabClick = -1;
 RECT gRollBox{};
 
 COLORREF kNavy = RGB(31, 78, 121);

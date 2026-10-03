@@ -18,7 +18,7 @@ To check drop math against the 2026-08-10 workbook sample, build and run **DropE
 ## Using it
 
 - Yellow **Count** cells are the only inputs. Tab, Enter, and arrow keys move through them. On a phone, use the number pad.
-- Click a till name (defaults **R1-R10**) to rename it.
+- Double-click a till name (defaults **R1-R10**) to rename it. A single click only switches registers.
 - **Drop** is how many of each denom to pull so the drawer resets to the register base.
 - **Left** turns green when it equals the register base, red when it does not.
 - Drop order: $100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies.

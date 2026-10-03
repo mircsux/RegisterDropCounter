@@ -440,7 +440,7 @@ constexpr int IDC_A_VER = 9106;
 const wchar_t kAboutBody[] =
     L"Count a drawer\r\n"
     L"1. Set the Register Base ($100, $200, $300, $400, or $500).\r\n"
-    L"2. Open a register (R1-R10). Click the till name to rename it.\r\n"
+    L"2. Open a register (R1-R10). Double-click the till name to rename it.\r\n"
     L"3. Type counts in the yellow cells, pennies through $100, including $2 bills.\r\n"
     L"4. Tab, Enter, or the arrow keys move to the next field. After $100 it wraps back to pennies on the same till. Shift+Tab or Shift+Enter goes back.\r\n"
     L"5. Amount, Drop, and Left fill in as you type. You do not enter those columns.\r\n"
@@ -1804,6 +1804,8 @@ void CommitTillEdit(HWND h) {
 
 void CancelTillEdit(HWND h) { HideTillEdit(h); }
 
+constexpr UINT WM_RENAME_TILL = WM_APP + 7;
+
 void StartTillEdit(HWND h, int i) {
   HWND tabs = GetDlgItem(h, IDC_TABS);
   HWND e = GetDlgItem(h, IDC_TAB_EDIT);
@@ -2101,17 +2103,25 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         ReadCountsFromEdits(h);
         SaveState();
         gActive = TabCtrl_GetCurSel(hdr->hwndFrom);
-        gTabClick = gActive;
         LoadCountsIntoEdits(h);
-      } else if (hdr->idFrom == IDC_TABS && hdr->code == NM_CLICK) {
+      } else if (hdr->idFrom == IDC_TABS && hdr->code == NM_DBLCLK) {
         TCHITTESTINFO ht{};
         POINT pt{};
         GetCursorPos(&pt);
         ScreenToClient(hdr->hwndFrom, &pt);
         ht.pt = pt;
         const int hit = TabCtrl_HitTest(hdr->hwndFrom, &ht);
-        if (hit >= 0 && hit == gActive && hit == gTabClick) StartTillEdit(h, hit);
-        gTabClick = hit;
+        if (hit >= 0 && hit < rdc::kRegisterCount) {
+          if (hit != gActive) {
+            CommitTillEdit(h);
+            ReadCountsFromEdits(h);
+            SaveState();
+            gActive = hit;
+            TabCtrl_SetCurSel(hdr->hwndFrom, hit);
+            LoadCountsIntoEdits(h);
+          }
+          PostMessageW(h, WM_RENAME_TILL, (WPARAM)hit, 0);
+        }
       } else if ((hdr->idFrom == IDC_LV_DEP || hdr->idFrom == IDC_LV_EOD ||
                   hdr->idFrom == IDC_LV_RST) &&
                  (hdr->code == NM_CLICK || hdr->code == NM_DBLCLK)) {
@@ -2139,6 +2149,9 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
       }
       break;
     }
+    case WM_RENAME_TILL:
+      StartTillEdit(h, (int)w);
+      return 0;
     case WM_COMMAND: {
       int id = LOWORD(w);
       int code = HIWORD(w);
