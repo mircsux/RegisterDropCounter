@@ -35,6 +35,8 @@ struct AboutView: View {
                         Text("Changelog")
                             .font(.headline)
                             .foregroundStyle(Theme.navyFg)
+                        Text("v2.36.0  Stats for Nerds keeps a running total of cash each register has taken, including cash still on the counter. Sample fills stay out.")
+                            .foregroundStyle(Theme.ink)
                         Text("v2.35.0  Dark mode is a dark cobalt grey, not black. Options has a font size list. The default stays 15.")
                             .foregroundStyle(Theme.ink)
                         Text("v2.34.0  Double-click a till name to rename it. A single click only switches registers.")

@@ -1,4 +1,4 @@
-Register Drop Counter  2.35.0  (2026-10-03)  -  iPhone (Xcode)
+Register Drop Counter  2.36.0  (2026-10-03)  -  iPhone (Xcode)
 
 1. Unzip this folder on a Mac.
 2. Open RegisterDropCounter.xcodeproj in Xcode 15 or newer.

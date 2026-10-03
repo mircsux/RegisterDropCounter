@@ -1,8 +1,8 @@
-/* Register Drop Counter 2.35.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
+/* Register Drop Counter 2.36.0 — same integer-cent drop math as Windows / iPhone / Android / C23. */
 (function () {
   "use strict";
 
-  var VERSION = "2.35.0";
+  var VERSION = "2.36.0";
   var RELEASE = "2026-10-03";
   var SUGGESTED_FONTS = [
     "Segoe UI", "Arial", "Calibri", "Candara", "Verdana", "Tahoma", "Trebuchet MS",
@@ -849,6 +849,7 @@
       '<div class="block"><h3>Count a drawer</h3><p>Set the register base. Open a till (R1–R10). Double-click the name to rename it. Type counts in the yellow cells. After $100, Tab wraps back to pennies on the same till. Amount, Drop, and Left fill in. Left turns green when it equals the base.</p></div>' +
       '<div class="block"><h3>The drop</h3><p>$100, $50, $20, $10, $5, $2, $1, then quarters, dimes, nickels, rolls, pennies. Loose coins drop before rolls.</p></div>' +
       '<div class="block"><h3>Changelog</h3>' +
+      "<p>v2.36.0  Stats for Nerds keeps a running total of cash each register has taken, including cash still on the counter. Sample fills stay out.</p>" +
       "<p>v2.35.0  Dark mode is a dark cobalt grey, not black. Options has a font size list. The default stays 15.</p>" +
       "<p>v2.34.0  Double-click a till name to rename it. A single click only switches registers.</p>" +
       "<p>v2.33.0  Till keeps the last drop. On counter and Cleared tonight show the deposit. Font list is every installed face. New cash-drawer icon.</p>" +

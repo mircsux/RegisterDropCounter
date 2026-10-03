@@ -467,6 +467,10 @@ const wchar_t kAboutBody[] =
     L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.36.0  2026-10-03  Register totals\r\n"
+    L"- Stats for Nerds keeps a running total of cash each register has taken.\r\n"
+    L"- The total is every drop plus cash still on the counter. Sample fills stay out.\r\n"
+    L"\r\n"
     L"v2.35.0  2026-10-03  Cobalt grey and font size\r\n"
     L"- Dark mode is a dark cobalt grey, not black.\r\n"
     L"- Options has a font size list. The default stays 15.\r\n"

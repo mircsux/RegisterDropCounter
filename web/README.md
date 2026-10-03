@@ -2,7 +2,7 @@
 
 A counting tool for cash drawers. Open `index.html` in any browser.
 
-Version **2.35.0** (2026-10-03). Designed by Ronald Robbins Jr and SuperGrok.
+Version **2.36.0** (2026-10-03). Designed by Ronald Robbins Jr and SuperGrok.
 
 ## Open
 
