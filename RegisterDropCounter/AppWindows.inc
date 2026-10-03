@@ -467,6 +467,10 @@ const wchar_t kAboutBody[] =
     L"Help > History, Stats for Nerds, and About. File keeps Load Sample Drops and Options.";
 
 const wchar_t kChangelogBody[] =
+    L"v2.34.0  2026-10-02  Double-click to rename\r\n"
+    L"- A single click on a till only switches registers.\r\n"
+    L"- Double-click the till name to rename it.\r\n"
+    L"\r\n"
     L"v2.33.0  2026-09-23  Tonight's totals, icon, and font list\r\n"
     L"- After Clear, the till keeps the last drop and the time. Counting it again changes the line to Last drop.\r\n"
     L"- The counter shows On counter (drop still in the drawers) and Cleared tonight (today's deposit). Sample fills stay out.\r\n"
